@@ -1,6 +1,33 @@
 import { Score, Student, Subject, ScoreComponent } from "./types";
 import { Database } from "./data";
 
+/**
+ * Compresses an image file to a small JPEG base64 string.
+ * Camera photos can be 3-5 MB; Firestore has a 1 MB per-document limit.
+ * This resizes to maxDim × maxDim and re-encodes at the given quality.
+ */
+export function compressImage(file: File, maxDim = 320, quality = 0.72): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas 2D context unavailable")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Failed to load image")); };
+    img.src = objectUrl;
+  });
+}
+
 export function getScoreComponents(db: Database): ScoreComponent[] {
   if (db.scoreComponents && db.scoreComponents.length > 0) {
     return db.scoreComponents;

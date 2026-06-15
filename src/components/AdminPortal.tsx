@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Admin, Student, Class, Subject, Teacher, Score, ScoreComponent, AffectiveTraits, PsychomotorSkills } from "../types";
 import { Database, DEFAULT_STUDENT_AVATAR, generateUsername, DEFAULT_TEACHER_AVATAR } from "../data";
+import { compressImage, getScoreComponents, calculateCurrentTermTotal } from "../utils";
 import ReportCard from "./ReportCard";
 import Broadsheet from "./Broadsheet";
-import { getScoreComponents, calculateCurrentTermTotal } from "../utils";
 import * as XLSX from "xlsx";
 import { ShieldCheck, ClipboardList, FileText, Table, Plus, Users, BookOpen, GraduationCap, School, Check, UserPlus, Trash, Bookmark, Eye, ShieldAlert, Settings, Upload, Printer, LayoutGrid, Paintbrush, Layers, Download, FileSpreadsheet, EyeOff, Edit, Trash2 } from "lucide-react";
 
@@ -204,29 +204,27 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
   };
 
   // School logo file reader helper
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setSchLogo(base64);
-        onUpdateDb({ ...db, schoolSettings: { ...db.schoolSettings, logoUrl: base64 } });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      const base64 = await compressImage(file, 400, 0.85);
+      setSchLogo(base64);
+      onUpdateDb({ ...db, schoolSettings: { ...db.schoolSettings, logoUrl: base64 } });
+    } catch (err) {
+      console.error("Failed to compress logo:", err);
     }
   };
 
-  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setSchPrincipalSignature(base64);
-        onUpdateDb({ ...db, schoolSettings: { ...db.schoolSettings, principalSignatureUrl: base64 } });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      const base64 = await compressImage(file, 400, 0.85);
+      setSchPrincipalSignature(base64);
+      onUpdateDb({ ...db, schoolSettings: { ...db.schoolSettings, principalSignatureUrl: base64 } });
+    } catch (err) {
+      console.error("Failed to compress signature:", err);
     }
   };
 
@@ -484,26 +482,24 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
   const [editingTeachPassport, setEditingTeachPassport] = useState("");
 
   // Teacher passport upload helper for additions
-  const handleTeachPassportUploadForAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTeachPassportUploadForAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTeachPassport(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      setTeachPassport(await compressImage(file));
+    } catch (err) {
+      console.error("Failed to compress teacher passport:", err);
     }
   };
 
   // Teacher passport upload helper for editing
-  const handleEditTeachPassportUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditTeachPassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditingTeachPassport(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      setEditingTeachPassport(await compressImage(file));
+    } catch (err) {
+      console.error("Failed to compress teacher passport:", err);
     }
   };
 
@@ -518,14 +514,13 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
   const [classTeacherSuccess, setClassTeacherSuccess] = useState("");
 
   // Student passport file reader helper
-  const handlePassportUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setStudPassport(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      setStudPassport(await compressImage(file));
+    } catch (err) {
+      console.error("Failed to compress student passport:", err);
     }
   };
 
@@ -3124,16 +3119,14 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === "string") {
-                              setEditingStudent({ ...editingStudent, passportUrl: reader.result });
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                        if (!file) return;
+                        try {
+                          const base64 = await compressImage(file);
+                          setEditingStudent({ ...editingStudent, passportUrl: base64 });
+                        } catch (err) {
+                          console.error("Failed to compress passport:", err);
                         }
                       }}
                     />

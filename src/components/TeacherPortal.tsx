@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Score, Student, AffectiveTraits, PsychomotorSkills } from "../types";
 import { Database, DEFAULT_TEACHER_AVATAR, DEFAULT_STUDENT_AVATAR, generateUsername } from "../data";
-import { calculateGrade, getScoreComponents, calculateCurrentTermTotal } from "../utils";
+import { calculateGrade, getScoreComponents, calculateCurrentTermTotal, compressImage } from "../utils";
 import Broadsheet from "./Broadsheet";
 import { Table, Save, AlertCircle, Edit, Check, Star, RefreshCw, UserCheck, BookOpen, AlertTriangle, ArrowUpDown, FileSpreadsheet, Download, Upload, FileUp, UserPlus, Plus, Image, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -23,24 +23,17 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
   };
 
   // Helper to handle logged-in teacher uploading passport
-  const handleTeacherPassportUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTeacherPassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        const updatedTeachers = db.teachers.map((teach) => {
-          if (teach.id === currentTeacher.id) {
-            return { ...teach, passportUrl: base64 };
-          }
-          return teach;
-        });
-        onUpdateDb({
-          ...db,
-          teachers: updatedTeachers,
-        });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      const base64 = await compressImage(file);
+      const updatedTeachers = db.teachers.map((teach) =>
+        teach.id === currentTeacher.id ? { ...teach, passportUrl: base64 } : teach
+      );
+      onUpdateDb({ ...db, teachers: updatedTeachers });
+    } catch (err) {
+      console.error("Failed to compress teacher passport:", err);
     }
   };
 
@@ -97,14 +90,14 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
     setEnrollClass(selectedClass);
   }, [selectedClass]);
 
-  const handleEnrollPassportUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEnrollPassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEnrollPassport(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      const base64 = await compressImage(file);
+      setEnrollPassport(base64);
+    } catch (err) {
+      console.error("Failed to compress enroll passport:", err);
     }
   };
 
