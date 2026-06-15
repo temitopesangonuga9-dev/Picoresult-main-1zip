@@ -59,13 +59,13 @@ export default function App() {
   };
 
   const handleUpdateDb = async (newDb: Database) => {
+    const oldDb = db;
     setDb(newDb);
     try {
-      await saveDatabaseToFirestore(newDb);
+      await saveDatabaseToFirestore(newDb, oldDb ?? undefined);
       setSyncFailed(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save to Firestore:", error);
-      alert("Error saving data to the cloud. Please check your connection and try again.");
       setSyncFailed(true);
     }
   };

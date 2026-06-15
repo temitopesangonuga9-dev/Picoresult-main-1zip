@@ -1,4 +1,4 @@
-import { collection, doc, onSnapshot, setDoc, writeBatch, getDocs, deleteDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, setDoc, writeBatch } from "firebase/firestore";
 import { db as firestoreDb } from "./firebase";
 import { Database } from "../data";
 
@@ -94,8 +94,18 @@ export const syncDatabase = (onUpdate: (db: Database) => void, onError: (err: an
   return () => unsubs.forEach(unsub => unsub());
 };
 
-export const saveDatabaseToFirestore = async (newDb: Database) => {
-  // 1. Save settings
+const getDocId = (colName: string, item: any): string => {
+  if (colName === "scores") {
+    return `${item.studentId}_${item.subjectId}_${item.session}_${item.term}`.replace(/\//g, "-");
+  }
+  if (colName === "affectiveTraits" || colName === "psychomotorSkills") {
+    return `${item.studentId}_${item.session}_${item.term}`.replace(/\//g, "-");
+  }
+  return item.id || "";
+};
+
+export const saveDatabaseToFirestore = async (newDb: Database, oldDb?: Database) => {
+  // Save settings doc
   await setDoc(doc(firestoreDb, "settings", "main"), {
     sessions: newDb.sessions,
     terms: newDb.terms,
@@ -103,86 +113,46 @@ export const saveDatabaseToFirestore = async (newDb: Database) => {
     reportCardLayout: newDb.reportCardLayout,
   });
 
-  // 2. Save array collections
-  // For simplicity and to avoid complex diffing in this turn, 
-  // we will update/set each item based on its ID.
-  // Note: This won't delete items removed from the array unless we implement deletion.
-  // However, for the current scale, we'll try a batch approach for important collections.
-  
-  const saveCollection = async (colName: string, items: any[], idKey: string = "id") => {
-    if (!items) return;
+  const saveCollection = async (colName: string, newItems: any[], oldItems: any[] = []) => {
+    if (!newItems) return;
 
-    // 1. Determine all doc IDs from the new data
-    const newItemIds = new Set<string>();
-    items.forEach(item => {
-      let docId = "";
-      if (colName === "scores") {
-        docId = `${item.studentId}_${item.subjectId}_${item.session}_${item.term}`.replace(/\//g, "-");
-      } else if (colName === "affectiveTraits" || colName === "psychomotorSkills") {
-        docId = `${item.studentId}_${item.session}_${item.term}`.replace(/\//g, "-");
-      } else {
-        docId = item[idKey];
-      }
-      if (docId) newItemIds.add(docId);
-    });
+    // Diff old vs new to find deleted items — no getDocs needed
+    const newIds = new Set(newItems.map(item => getDocId(colName, item)));
+    const deletedIds = oldItems
+      .map(item => getDocId(colName, item))
+      .filter(id => id && !newIds.has(id));
 
-    // 2. Fetch current docs from Firestore to find orphans
-    const snapshot = await getDocs(collection(firestoreDb, colName));
-    const currentDocIds = snapshot.docs.map(doc => doc.id);
-    const toDelete = currentDocIds.filter(id => !newItemIds.has(id));
-
-    // 3. Batch delete orphans
-    if (toDelete.length > 0) {
-      const deleteChunks = [];
-      for (let i = 0; i < toDelete.length; i += 500) {
-        deleteChunks.push(toDelete.slice(i, i + 500));
-      }
-      for (const chunk of deleteChunks) {
-        const batch = writeBatch(firestoreDb);
-        chunk.forEach(id => batch.delete(doc(firestoreDb, colName, id)));
-        await batch.commit();
-      }
-    }
-
-    // 4. Batch set/update items
-    // Firestore batch limit is 500
-    const chunks = [];
-    for (let i = 0; i < items.length; i += 500) {
-      chunks.push(items.slice(i, i + 500));
-    }
-
-    for (const chunk of chunks) {
+    // Batch delete removed items
+    for (let i = 0; i < deletedIds.length; i += 500) {
       const batch = writeBatch(firestoreDb);
-      chunk.forEach((item) => {
-        // Scores and Traits don't always have a single 'id', they might use a composite key
-        let docId = "";
-        if (colName === "scores") {
-          docId = `${item.studentId}_${item.subjectId}_${item.session}_${item.term}`.replace(/\//g, "-");
-        } else if (colName === "affectiveTraits" || colName === "psychomotorSkills") {
-          docId = `${item.studentId}_${item.session}_${item.term}`.replace(/\//g, "-");
-        } else {
-          docId = item[idKey];
-        }
-        
-        if (docId) {
-          batch.set(doc(firestoreDb, colName, docId), item);
-        }
+      deletedIds.slice(i, i + 500).forEach(id => {
+        batch.delete(doc(firestoreDb, colName, id));
+      });
+      await batch.commit();
+    }
+
+    // Batch write all new/updated items
+    for (let i = 0; i < newItems.length; i += 500) {
+      const batch = writeBatch(firestoreDb);
+      newItems.slice(i, i + 500).forEach(item => {
+        const docId = getDocId(colName, item);
+        if (docId) batch.set(doc(firestoreDb, colName, docId), item);
       });
       await batch.commit();
     }
   };
 
   await Promise.all([
-    saveCollection("admins", newDb.admins),
-    saveCollection("students", newDb.students),
-    saveCollection("classes", newDb.classes),
-    saveCollection("subjects", newDb.subjects),
-    saveCollection("teachers", newDb.teachers),
-    saveCollection("scores", newDb.scores),
-    saveCollection("affectiveTraits", newDb.affectiveTraits),
-    saveCollection("psychomotorSkills", newDb.psychomotorSkills),
-    saveCollection("subjectAssignments", newDb.subjectAssignments),
-    saveCollection("classTeacherAssignments", newDb.classTeacherAssignments),
-    saveCollection("scoreComponents", newDb.scoreComponents || []),
+    saveCollection("admins", newDb.admins, oldDb?.admins),
+    saveCollection("students", newDb.students, oldDb?.students),
+    saveCollection("classes", newDb.classes, oldDb?.classes),
+    saveCollection("subjects", newDb.subjects, oldDb?.subjects),
+    saveCollection("teachers", newDb.teachers, oldDb?.teachers),
+    saveCollection("scores", newDb.scores, oldDb?.scores),
+    saveCollection("affectiveTraits", newDb.affectiveTraits, oldDb?.affectiveTraits),
+    saveCollection("psychomotorSkills", newDb.psychomotorSkills, oldDb?.psychomotorSkills),
+    saveCollection("subjectAssignments", newDb.subjectAssignments, oldDb?.subjectAssignments),
+    saveCollection("classTeacherAssignments", newDb.classTeacherAssignments, oldDb?.classTeacherAssignments),
+    saveCollection("scoreComponents", newDb.scoreComponents || [], oldDb?.scoreComponents),
   ]);
 };
