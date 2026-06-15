@@ -647,15 +647,21 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
     });
   };
 
-  // Attendance metrics update helper
-  const handleAttendanceChange = (field: "daysSchoolOpened" | "daysPresent" | "daysAbsent", value: string) => {
+  // Attendance metrics update helper — daysAbsent is always auto-calculated
+  const handleAttendanceChange = (field: "daysSchoolOpened" | "daysPresent", value: string) => {
     if (!activeStudentObj) return;
-    const parsed = parseInt(value) || 0;
+    const parsed = Math.max(0, parseInt(value) || 0);
+
+    const newOpened = field === "daysSchoolOpened" ? parsed : activeStudentObj.daysSchoolOpened;
+    const newPresent = field === "daysPresent" ? parsed : activeStudentObj.daysPresent;
+    const newAbsent = Math.max(0, newOpened - newPresent);
 
     const listWithoutMatch = db.students.filter((s) => s.id !== selectedStudentForTraits);
     const updatedStud: Student = {
       ...activeStudentObj,
-      [field]: parsed,
+      daysSchoolOpened: newOpened,
+      daysPresent: newPresent,
+      daysAbsent: newAbsent,
     };
 
     onUpdateDb({
@@ -1110,6 +1116,7 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                       return {
                         ...s,
                         daysSchoolOpened: classDaysOpened,
+                        daysAbsent: Math.max(0, classDaysOpened - s.daysPresent),
                         nextTermBegins: classNextTermBegins,
                         termEnded: classTermEnded
                       };
@@ -1605,6 +1612,7 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                     <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Opened</label>
                     <input
                       type="number"
+                      min="0"
                       value={activeStudentObj.daysSchoolOpened}
                       onChange={(e) => handleAttendanceChange("daysSchoolOpened", e.target.value)}
                       className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 bg-slate-50/25"
@@ -1614,6 +1622,7 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                     <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Present</label>
                     <input
                       type="number"
+                      min="0"
                       value={activeStudentObj.daysPresent}
                       onChange={(e) => handleAttendanceChange("daysPresent", e.target.value)}
                       className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 text-emerald-800 bg-slate-50/25"
@@ -1621,12 +1630,10 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                   </div>
                   <div>
                     <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Absent</label>
-                    <input
-                      type="number"
-                      value={activeStudentObj.daysAbsent}
-                      onChange={(e) => handleAttendanceChange("daysAbsent", e.target.value)}
-                      className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 text-red-700 bg-slate-50/25"
-                    />
+                    <div className="w-full text-center py-1 border border-slate-200 rounded font-extrabold text-red-700 bg-red-50/40 select-none">
+                      {activeStudentObj.daysAbsent}
+                    </div>
+                    <p className="text-[8px] text-slate-400 text-center mt-0.5 uppercase">Auto</p>
                   </div>
                 </div>
               </div>
