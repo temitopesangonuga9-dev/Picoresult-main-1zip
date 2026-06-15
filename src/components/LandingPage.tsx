@@ -61,14 +61,6 @@ export default function LandingPage({ db, onLoginSuccess }: LandingPageProps) {
     }
   };
 
-  // Helper for quick demo fast logs
-  const triggerAutoLoginHelper = (role: LoginRole, userStr: string, passStr: string) => {
-    setActiveRole(role);
-    setUsername(userStr);
-    setPassword(passStr);
-    setErrorMsg("");
-  };
-
   return (
     <div className="w-full bg-slate-50 min-h-screen flex flex-col justify-between select-text">
       
@@ -172,44 +164,6 @@ export default function LandingPage({ db, onLoginSuccess }: LandingPageProps) {
             </div>
           </div>
 
-          {/* Quick Demo Access Bar */}
-          <div className="p-4 bg-emerald-900 text-white rounded-2xl space-y-2.5 uppercase max-w-lg border border-emerald-950 shadow-sm text-[10px]">
-            <p className="font-extrabold text-amber-400 tracking-wider">Instant Fast Demo Logins:</p>
-            <div className="flex flex-wrap gap-2 pt-1 border-t border-emerald-800/65">
-              <button
-                onClick={() =>
-                  triggerAutoLoginHelper(
-                    "student",
-                    "ojooluwaseyifunmirukayat@progressintellectual.edu.ng",
-                    "12345678"
-                  )
-                }
-                className="bg-white/10 hover:bg-white/25 px-2.5 py-1.5 rounded font-black transition cursor-pointer text-slate-50 border border-white/5 truncate max-w-[280px]"
-              >
-                Student (RUKAYAT)
-              </button>
-              <button
-                onClick={() =>
-                  triggerAutoLoginHelper(
-                    "teacher",
-                    "seyiadewole@progressintellectual.edu.ng",
-                    "12345678"
-                  )
-                }
-                className="bg-white/10 hover:bg-white/25 px-2.5 py-1.5 rounded font-black transition cursor-pointer text-slate-50 border border-white/5 truncate max-w-[180px]"
-              >
-                Teacher (Mr. Seyi)
-              </button>
-              <button
-                onClick={() =>
-                  triggerAutoLoginHelper("admin", "admin@progressintellectual.edu.ng", "admin123")
-                }
-                className="bg-white/10 hover:bg-white/25 px-2.5 py-1.5 rounded font-black transition cursor-pointer text-slate-50 border border-white/5"
-              >
-                Administrator
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Right side: Interactive Login Card */}
