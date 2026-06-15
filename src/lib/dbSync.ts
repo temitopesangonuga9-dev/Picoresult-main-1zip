@@ -41,10 +41,12 @@ export const syncDatabase = (onUpdate: (db: Database) => void, onError: (err: an
   const unsubs: (() => void)[] = [];
   let isFullyInitialized = false;
 
+  const emit = () => onUpdate({ ...currentDb } as Database);
+
   const checkAndEmit = () => {
     if (loadedCollections >= totalCollectionsCount) {
       isFullyInitialized = true;
-      onUpdate(currentDb as Database);
+      emit();
     }
   };
 
@@ -55,8 +57,7 @@ export const syncDatabase = (onUpdate: (db: Database) => void, onError: (err: an
       (currentDb as any)[colName] = items;
       
       if (isFullyInitialized) {
-        // Already fully initialized, emit update
-        onUpdate(currentDb as Database);
+        emit();
       } else {
         loadedCollections++;
         checkAndEmit();
@@ -79,7 +80,7 @@ export const syncDatabase = (onUpdate: (db: Database) => void, onError: (err: an
     }
 
     if (isFullyInitialized) {
-      onUpdate(currentDb as Database);
+      emit();
     } else {
       loadedCollections++;
       checkAndEmit();
