@@ -63,6 +63,10 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
   // Active student selected for detailed grading (Affective & Psychomotor & Comments)
   const [selectedStudentForTraits, setSelectedStudentForTraits] = useState<string>("");
 
+  // Local state for comment fields so they update instantly without per-keystroke Firestore saves
+  const [localClassTeacherReport, setLocalClassTeacherReport] = useState("");
+  const [localPrincipalReport, setLocalPrincipalReport] = useState("");
+
   // Sheet status feedback
   const [saveFeedback, setSaveFeedback] = useState("");
   const [errorFeedback, setErrorFeedback] = useState("");
@@ -485,6 +489,13 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
       setSelectedStudentForTraits("");
     }
   }, [sortedClassStudents, selectedSubject, selectedSession, selectedTerm, db.scores]);
+
+  // Sync local comment fields whenever the selected student changes
+  React.useEffect(() => {
+    const stud = db.students.find((s) => s.id === selectedStudentForTraits);
+    setLocalClassTeacherReport(stud?.classTeacherReport || "");
+    setLocalPrincipalReport(stud?.principalReport || "");
+  }, [selectedStudentForTraits, db.students]);
 
   // Handle score cell editing
   const handleScoreChange = (
@@ -1552,15 +1563,43 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
             BEHAVIORAL TRAITS &amp; COMMENTS
           </h2>
 
+          <div className="flex gap-3">
+            {/* Student Navigation List */}
+            <div className="w-28 shrink-0 border-r border-slate-100 pr-2">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Students</p>
+              <div className="space-y-0.5 max-h-[560px] overflow-y-auto">
+                {sortedClassStudents.map((stud) => (
+                  <button
+                    key={stud.id}
+                    type="button"
+                    onClick={() => setSelectedStudentForTraits(stud.id)}
+                    className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer truncate ${
+                      selectedStudentForTraits === stud.id
+                        ? "bg-emerald-600 text-white"
+                        : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                    title={stud.fullName}
+                  >
+                    {stud.fullName}
+                  </button>
+                ))}
+                {sortedClassStudents.length === 0 && (
+                  <p className="text-[9px] text-slate-400 italic">No students</p>
+                )}
+              </div>
+            </div>
+
+            {/* Traits Form */}
+            <div className="flex-1 min-w-0">
           {!activeStudentObj ? (
             <p className="text-xs text-slate-400 font-medium italic text-center py-10 uppercase">
-              Select a student from the traits column to evaluate behavior.
+              Select a student to evaluate behavior.
             </p>
           ) : (
             <div className="space-y-4 text-xs select-text">
               
               {/* Student Identification header */}
-              <div className="p-3 bg-emerald-50/25 rounded-xl border border-emerald-105">
+              <div className="p-3 bg-emerald-50/25 rounded-xl border border-emerald-100">
                 <p className="font-extrabold text-[12px] text-emerald-950 uppercase">{activeStudentObj.fullName}</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Reg. No: {activeStudentObj.regNo}</p>
               </div>
@@ -1660,36 +1699,40 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
               </div>
 
               {/* Comments fields */}
-              <div className="space-y-3 pt-2 border-t border-slate-150">
+              <div className="space-y-3 pt-2 border-t border-slate-100">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Class Teacher&apos;s Report</label>
                   <textarea
                     rows={2}
-                    value={activeStudentObj.classTeacherReport}
-                    onChange={(e) => handleCommentChange("classTeacherReport", e.target.value)}
+                    value={localClassTeacherReport}
+                    onChange={(e) => setLocalClassTeacherReport(e.target.value.toUpperCase())}
+                    onBlur={() => handleCommentChange("classTeacherReport", localClassTeacherReport)}
                     placeholder="ENTER TEACHER REMARK COMMENTS..."
                     className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-emerald-600 uppercase font-semibold bg-slate-50/30"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Principal&apos;s report</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Principal&apos;s Report</label>
                   <textarea
                     rows={2}
-                    value={activeStudentObj.principalReport}
-                    onChange={(e) => handleCommentChange("principalReport", e.target.value)}
+                    value={localPrincipalReport}
+                    onChange={(e) => setLocalPrincipalReport(e.target.value.toUpperCase())}
+                    onBlur={() => handleCommentChange("principalReport", localPrincipalReport)}
                     placeholder="ENTER PRINCIPAL PERFORMANCE COMMENT..."
                     className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-emerald-600 uppercase font-semibold text-emerald-800 bg-slate-50/30"
                   />
                 </div>
               </div>
 
-              <p className="text-[10px] text-emerald-650 text-center font-bold uppercase italic animate-pulse">
+              <p className="text-[10px] text-emerald-600 text-center font-bold uppercase italic animate-pulse">
                 ★ Behavioral changes are saved instantly!
               </p>
 
             </div>
           )}
+            </div>
+          </div>
         </div>
 
       </div>

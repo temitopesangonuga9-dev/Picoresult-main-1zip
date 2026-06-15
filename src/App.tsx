@@ -59,9 +59,9 @@ export default function App() {
   };
 
   const handleUpdateDb = async (newDb: Database) => {
+    setDb(newDb);
     try {
       await saveDatabaseToFirestore(newDb);
-      setDb(newDb);
       setSyncFailed(false);
     } catch (error) {
       console.error("Failed to save to Firestore:", error);
