@@ -15,6 +15,9 @@ export default defineConfig(() => {
       allowedHosts: true,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      proxy: {
+        '/api': 'http://localhost:3001',
+      },
     },
   };
 });
