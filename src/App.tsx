@@ -85,6 +85,11 @@ export default function App() {
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800 font-sans tracking-tight antialiased">
+      {syncFailed && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white text-center text-xs font-bold py-2 px-4 shadow-lg">
+          ⚠ Cloud save failed — check your internet connection. Changes may not be saved. Refresh to retry.
+        </div>
+      )}
       {reportView ? (
         <ReportCard
           studentId={reportView.studentId}

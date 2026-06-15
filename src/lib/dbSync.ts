@@ -105,20 +105,32 @@ const getDocId = (colName: string, item: any): string => {
 };
 
 export const saveDatabaseToFirestore = async (newDb: Database, oldDb?: Database) => {
-  // Save settings doc
-  await setDoc(doc(firestoreDb, "settings", "main"), {
-    sessions: newDb.sessions,
-    terms: newDb.terms,
-    schoolSettings: newDb.schoolSettings,
-    reportCardLayout: newDb.reportCardLayout,
-  });
+  // Only save settings if something inside actually changed
+  const settingsChanged = !oldDb ||
+    oldDb.sessions !== newDb.sessions ||
+    oldDb.terms !== newDb.terms ||
+    oldDb.schoolSettings !== newDb.schoolSettings ||
+    oldDb.reportCardLayout !== newDb.reportCardLayout;
 
-  const saveCollection = async (colName: string, newItems: any[], oldItems: any[] = []) => {
+  if (settingsChanged) {
+    await setDoc(doc(firestoreDb, "settings", "main"), {
+      sessions: newDb.sessions,
+      terms: newDb.terms,
+      schoolSettings: newDb.schoolSettings,
+      reportCardLayout: newDb.reportCardLayout,
+    });
+  }
+
+  const saveCollection = async (colName: string, newItems: any[], oldItems?: any[]) => {
     if (!newItems) return;
+    // Skip entirely if the array reference hasn't changed — nothing to write
+    if (oldItems !== undefined && newItems === oldItems) return;
 
-    // Diff old vs new to find deleted items — no getDocs needed
+    const effectiveOldItems = oldItems ?? [];
+
+    // Diff to find deleted items
     const newIds = new Set(newItems.map(item => getDocId(colName, item)));
-    const deletedIds = oldItems
+    const deletedIds = effectiveOldItems
       .map(item => getDocId(colName, item))
       .filter(id => id && !newIds.has(id));
 
@@ -131,7 +143,7 @@ export const saveDatabaseToFirestore = async (newDb: Database, oldDb?: Database)
       await batch.commit();
     }
 
-    // Batch write all new/updated items
+    // Batch write new/updated items
     for (let i = 0; i < newItems.length; i += 500) {
       const batch = writeBatch(firestoreDb);
       newItems.slice(i, i + 500).forEach(item => {
