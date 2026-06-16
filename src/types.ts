@@ -97,23 +97,23 @@ export interface ReportCardLayout {
   showContactInfo: boolean;
   showSessionTermBar: boolean;
   showStudentBasicMetricGrid: boolean;
-  showAttendance: boolean; // new
-  showNextTermBegins: boolean; // new
-  showTermEnded: boolean; // new
-  showStudentRegNo: boolean; // new
-  showClassStatistics: boolean; // this wraps the overall stats
-  showPositionInClass: boolean; // new
-  showPositionInSection: boolean; // new
-  showOverallTotalScore: boolean; // new
-  showStudentAverageScore: boolean; // new
-  showClassHighestScore: boolean; // new
-  showClassLowestScore: boolean; // new
-  showClassAverage: boolean; // new
-  showTablePreviousTerms: boolean; // new
-  showTableRemarks: boolean; // new
-  showTableSubjectPosition: boolean; // new
-  showTableClassAverage: boolean; // new
-  showTableHighestLowest: boolean; // new
+  showAttendance: boolean;
+  showNextTermBegins: boolean;
+  showTermEnded: boolean;
+  showStudentRegNo: boolean;
+  showClassStatistics: boolean;
+  showPositionInClass: boolean;
+  showPositionInSection: boolean;
+  showOverallTotalScore: boolean;
+  showStudentAverageScore: boolean;
+  showClassHighestScore: boolean;
+  showClassLowestScore: boolean;
+  showClassAverage: boolean;
+  showTablePreviousTerms: boolean;
+  showTableRemarks: boolean;
+  showTableSubjectPosition: boolean;
+  showTableClassAverage: boolean;
+  showTableHighestLowest: boolean;
   showAffectiveTraits: boolean;
   showPsychomotorSkills: boolean;
   showGradingScale: boolean;
@@ -129,6 +129,18 @@ export interface ReportCardLayout {
   reportTitleBarLabel: string;
   classTeacherReportLabel: string;
   principalReportLabel: string;
+
+  // Custom date field labels
+  nextTermLabel?: string;
+  termEndedLabel?: string;
+
+  // Custom trait/skill labels — keyed by trait field name
+  affectiveTraitLabels?: Record<string, string>;
+  psychomotorSkillLabels?: Record<string, string>;
+
+  // Admin-defined extra traits/skills shown on the report card
+  customAffectiveTraits?: string[];
+  customPsychomotorSkills?: string[];
 
   themePrimaryColor: "emerald" | "blue" | "indigo" | "amber" | "rose" | "slate" | "charcoal";
   layoutDensity: "compact" | "normal" | "relaxed";
@@ -155,6 +167,8 @@ export interface AffectiveTraits {
   relationshipWithStudents: number;
   attitudeToSchool: number;
   selfControl: number;
+  // Admin-defined extra traits
+  customTraits?: Record<string, number>;
 }
 
 export interface PsychomotorSkills {
@@ -172,4 +186,6 @@ export interface PsychomotorSkills {
   creativeArts: number;
   physicalEducation: number;
   generalReasoning: number;
+  // Admin-defined extra skills
+  customSkills?: Record<string, number>;
 }

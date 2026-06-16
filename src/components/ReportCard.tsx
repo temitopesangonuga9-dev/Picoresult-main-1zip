@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Student } from "../types";
+import { Student, AffectiveTraits, PsychomotorSkills } from "../types";
 import { Database, DEFAULT_STUDENT_AVATAR } from "../data";
 import { computeStudentReport, computeClassOverview, getRemarkColor, getScoreComponents } from "../utils";
 import { Printer, MapPin, Phone, Mail, Loader2, Download } from "lucide-react";
@@ -638,12 +638,12 @@ export default function ReportCard({ studentId, session, term, db, onBack, hideC
                   <p><span className="font-bold text-slate-500">Reg. No:</span> <span className="font-extrabold text-slate-900">{student.regNo}</span></p>
                 )}
                 {layout.showNextTermBegins !== false && (
-                  <p><span className="font-bold text-slate-500">Next term begins:</span> <span className="font-bold text-slate-900">{formatDateStr(student.nextTermBegins)}</span></p>
+                  <p><span className="font-bold text-slate-500">{layout.nextTermLabel || "Next term begins"}:</span> <span className="font-bold text-slate-900">{formatDateStr(student.nextTermBegins)}</span></p>
                 )}
               </div>
               <div className="p-2 col-span-2 space-y-1 text-slate-800 bg-slate-50">
                 {layout.showTermEnded !== false && (
-                  <p><span className="font-bold text-slate-500">Term ended:</span> <span className="font-bold text-slate-900">{formatDateStr(student.termEnded)}</span></p>
+                  <p><span className="font-bold text-slate-500">{layout.termEndedLabel || "Term ended"}:</span> <span className="font-bold text-slate-900">{formatDateStr(student.termEnded)}</span></p>
                 )}
                 {layout.showAttendance !== false && (
                   <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-205">
@@ -836,19 +836,32 @@ export default function ReportCard({ studentId, session, term, db, onBack, hideC
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-150">
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Punctuality</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.punctuality}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Mental Alertness</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.mentalAlertness}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Behaviour</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.behaviour}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Reliability</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.reliability}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Attentiveness</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.attentiveness}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Respect</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.respect}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Neatness</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.neatness}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Politeness</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.politeness}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Honesty</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.honesty}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Staff Relationship</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.relationshipWithStaff}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Peer Relationship</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.relationshipWithStudents}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">School Attitude</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.attitudeToSchool}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Self Control</td><td className="py-0.5 text-center font-bold text-slate-800">{affective.selfControl}</td></tr>
+                    {([
+                      { key: "punctuality", def: "Punctuality" },
+                      { key: "mentalAlertness", def: "Mental Alertness" },
+                      { key: "behaviour", def: "Behaviour" },
+                      { key: "reliability", def: "Reliability" },
+                      { key: "attentiveness", def: "Attentiveness" },
+                      { key: "respect", def: "Respect" },
+                      { key: "neatness", def: "Neatness" },
+                      { key: "politeness", def: "Politeness" },
+                      { key: "honesty", def: "Honesty" },
+                      { key: "relationshipWithStaff", def: "Staff Relationship" },
+                      { key: "relationshipWithStudents", def: "Peer Relationship" },
+                      { key: "attitudeToSchool", def: "School Attitude" },
+                      { key: "selfControl", def: "Self Control" },
+                    ] as const).map(({ key, def }) => (
+                      <tr key={key} className="hover:bg-slate-50">
+                        <td className="py-0.5 pl-2">{layout.affectiveTraitLabels?.[key] || def}</td>
+                        <td className="py-0.5 text-center font-bold text-slate-800">{(affective as any)[key]}</td>
+                      </tr>
+                    ))}
+                    {(layout.customAffectiveTraits || []).map((trait) => (
+                      <tr key={trait} className="hover:bg-slate-50">
+                        <td className="py-0.5 pl-2">{trait}</td>
+                        <td className="py-0.5 text-center font-bold text-slate-800">{(affective as AffectiveTraits).customTraits?.[trait] ?? "—"}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -869,18 +882,37 @@ export default function ReportCard({ studentId, session, term, db, onBack, hideC
                   </thead>
                   <tbody className="divide-y divide-slate-150">
                     <tr className="hover:bg-slate-50 bg-slate-100/30 text-rose-800 font-bold"><td className="py-0.5 pl-2" colSpan={2}>Traits</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Spirit of Teamwork</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.spiritOfTeamwork}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Initiatives</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.initiatives}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Organizational</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.organizationalAbility}</td></tr>
-                    
+                    {([
+                      { key: "spiritOfTeamwork", def: "Spirit of Teamwork" },
+                      { key: "initiatives", def: "Initiatives" },
+                      { key: "organizationalAbility", def: "Organizational" },
+                    ] as const).map(({ key, def }) => (
+                      <tr key={key} className="hover:bg-slate-50">
+                        <td className="py-0.5 pl-2">{layout.psychomotorSkillLabels?.[key] || def}</td>
+                        <td className="py-0.5 text-center font-bold text-slate-800">{(psychomotor as any)[key]}</td>
+                      </tr>
+                    ))}
                     <tr className="hover:bg-slate-50 bg-slate-100/30 text-rose-800 font-bold"><td className="py-0.5 pl-2" colSpan={2}>Psychomotor</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Handwriting</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.handwriting}</td></tr>
-                    <tr className="hover:bg-slate-45"><td className="py-0.5 pl-2">Reading</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.reading}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Verbal Fluency</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.verbalFluencyDiction}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Musical Skills</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.musicalSkills}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Creative Arts</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.creativeArts}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">Physical Edu</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.physicalEducation}</td></tr>
-                    <tr className="hover:bg-slate-50"><td className="py-0.5 pl-2">General Reasoning</td><td className="py-0.5 text-center font-bold text-slate-800">{psychomotor.generalReasoning}</td></tr>
+                    {([
+                      { key: "handwriting", def: "Handwriting" },
+                      { key: "reading", def: "Reading" },
+                      { key: "verbalFluencyDiction", def: "Verbal Fluency" },
+                      { key: "musicalSkills", def: "Musical Skills" },
+                      { key: "creativeArts", def: "Creative Arts" },
+                      { key: "physicalEducation", def: "Physical Edu" },
+                      { key: "generalReasoning", def: "General Reasoning" },
+                    ] as const).map(({ key, def }) => (
+                      <tr key={key} className="hover:bg-slate-50">
+                        <td className="py-0.5 pl-2">{layout.psychomotorSkillLabels?.[key] || def}</td>
+                        <td className="py-0.5 text-center font-bold text-slate-800">{(psychomotor as any)[key]}</td>
+                      </tr>
+                    ))}
+                    {(layout.customPsychomotorSkills || []).map((skill) => (
+                      <tr key={skill} className="hover:bg-slate-50">
+                        <td className="py-0.5 pl-2">{skill}</td>
+                        <td className="py-0.5 text-center font-bold text-slate-800">{(psychomotor as PsychomotorSkills).customSkills?.[skill] ?? "—"}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

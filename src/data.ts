@@ -142,6 +142,14 @@ export const getInitialReportCardLayout = (): ReportCardLayout => {
     classTeacherReportLabel: "Class teacher's report",
     principalReportLabel: "Principal's report",
 
+    nextTermLabel: "Next term begins",
+    termEndedLabel: "Term ended",
+
+    affectiveTraitLabels: {},
+    psychomotorSkillLabels: {},
+    customAffectiveTraits: [],
+    customPsychomotorSkills: [],
+
     themePrimaryColor: "emerald",
     layoutDensity: "normal",
     paperSize: "A4",

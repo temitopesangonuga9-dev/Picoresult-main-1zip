@@ -625,6 +625,23 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
     });
   };
 
+  const handleCustomAffectiveChange = (traitName: string, value: number) => {
+    setTraitsFeedback("");
+    const listWithoutMatch = db.affectiveTraits.filter(
+      (a) =>
+        !(
+          a.studentId === selectedStudentForTraits &&
+          a.session === selectedSession &&
+          a.term === selectedTerm
+        )
+    );
+    const updatedTrait: AffectiveTraits = {
+      ...activeAffective,
+      customTraits: { ...((activeAffective as AffectiveTraits).customTraits || {}), [traitName]: value },
+    };
+    onUpdateDb({ ...db, affectiveTraits: [...listWithoutMatch, updatedTrait] });
+  };
+
   const handlePsychomotorChange = (key: string, value: number) => {
     setTraitsFeedback("");
     const listWithoutMatch = db.psychomotorSkills.filter(
@@ -645,6 +662,23 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
       ...db,
       psychomotorSkills: [...listWithoutMatch, updatedPsych],
     });
+  };
+
+  const handleCustomPsychomotorChange = (skillName: string, value: number) => {
+    setTraitsFeedback("");
+    const listWithoutMatch = db.psychomotorSkills.filter(
+      (p) =>
+        !(
+          p.studentId === selectedStudentForTraits &&
+          p.session === selectedSession &&
+          p.term === selectedTerm
+        )
+    );
+    const updatedPsych: PsychomotorSkills = {
+      ...activePsychomotor,
+      customSkills: { ...((activePsychomotor as PsychomotorSkills).customSkills || {}), [skillName]: value },
+    };
+    onUpdateDb({ ...db, psychomotorSkills: [...listWithoutMatch, updatedPsych] });
   };
 
   // Attendance metrics update helper — daysAbsent is always auto-calculated
@@ -1638,25 +1672,30 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                 </div>
               </div>
 
-              {/* Slider / Picker Ratings for Affective (Quick sample: 3 major ones, or select with simple dropdowns) */}
-              <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+              {/* Affective Traits Ratings */}
+              <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
                 <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Affective Traits Ratings</h3>
                 
                 {[
-                  { key: "punctuality", label: "Punctuality" },
-                  { key: "mentalAlertness", label: "Mental Alertness" },
-                  { key: "behaviour", label: "Behaviour" },
-                  { key: "reliability", label: "Reliability" },
-                  { key: "attentiveness", label: "Attentiveness" },
-                  { key: "respect", label: "Respect" },
-                  { key: "neatness", label: "Neatness" },
-                  { key: "politeness", label: "Politeness" },
-                  { key: "honesty", label: "Honesty" },
+                  { key: "punctuality", def: "Punctuality" },
+                  { key: "mentalAlertness", def: "Mental Alertness" },
+                  { key: "behaviour", def: "Behaviour" },
+                  { key: "reliability", def: "Reliability" },
+                  { key: "attentiveness", def: "Attentiveness" },
+                  { key: "respect", def: "Respect" },
+                  { key: "neatness", def: "Neatness" },
+                  { key: "politeness", def: "Politeness" },
+                  { key: "honesty", def: "Honesty" },
+                  { key: "relationshipWithStaff", def: "Staff Relationship" },
+                  { key: "relationshipWithStudents", def: "Peer Relationship" },
+                  { key: "attitudeToSchool", def: "School Attitude" },
+                  { key: "selfControl", def: "Self Control" },
                 ].map((item) => {
+                  const label = db.reportCardLayout?.affectiveTraitLabels?.[item.key] || item.def;
                   const val = (activeAffective as any)[item.key] || 4;
                   return (
                     <div key={item.key} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
-                      <span className="font-semibold text-slate-700 text-[11px]">{item.label}</span>
+                      <span className="font-semibold text-slate-700 text-[11px]">{label}</span>
                       <select
                         value={val}
                         onChange={(e) => handleAffectiveChange(item.key, parseInt(e.target.value))}
@@ -1670,20 +1709,40 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                   );
                 })}
 
-                <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider pt-2">Psychomotor Traits Ratings</h3>
+                {/* Custom affective traits */}
+                {(db.reportCardLayout?.customAffectiveTraits || []).map((trait) => (
+                  <div key={trait} className="flex justify-between items-center bg-emerald-50/50 p-2 rounded border border-emerald-100">
+                    <span className="font-semibold text-emerald-800 text-[11px]">{trait}</span>
+                    <select
+                      value={(activeAffective as AffectiveTraits).customTraits?.[trait] ?? 4}
+                      onChange={(e) => handleCustomAffectiveChange(trait, parseInt(e.target.value))}
+                      className="bg-white border border-emerald-300 px-1.5 py-0.5 rounded font-black text-emerald-900"
+                    >
+                      {[5, 4, 3, 2, 1].map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+
+                <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider pt-2">Psychomotor Skills Ratings</h3>
                 {[
-                  { key: "spiritOfTeamwork", label: "Spirit of Teamwork" },
-                  { key: "initiatives", label: "Initiatives" },
-                  { key: "organizationalAbility", label: "Organizational Ability" },
-                  { key: "handwriting", label: "Handwriting" },
-                  { key: "reading", label: "Reading" },
-                  { key: "verbalFluencyDiction", label: "Verbal Fluency Diction" },
-                  { key: "physicalEducation", label: "Physical Education" },
+                  { key: "spiritOfTeamwork", def: "Spirit of Teamwork" },
+                  { key: "initiatives", def: "Initiatives" },
+                  { key: "organizationalAbility", def: "Organizational Ability" },
+                  { key: "handwriting", def: "Handwriting" },
+                  { key: "reading", def: "Reading" },
+                  { key: "verbalFluencyDiction", def: "Verbal Fluency Diction" },
+                  { key: "musicalSkills", def: "Musical Skills" },
+                  { key: "creativeArts", def: "Creative Arts" },
+                  { key: "physicalEducation", def: "Physical Education" },
+                  { key: "generalReasoning", def: "General Reasoning" },
                 ].map((item) => {
+                  const label = db.reportCardLayout?.psychomotorSkillLabels?.[item.key] || item.def;
                   const val = (activePsychomotor as any)[item.key] || 4;
                   return (
                     <div key={item.key} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
-                      <span className="font-semibold text-slate-700 text-[11px]">{item.label}</span>
+                      <span className="font-semibold text-slate-700 text-[11px]">{label}</span>
                       <select
                         value={val}
                         onChange={(e) => handlePsychomotorChange(item.key, parseInt(e.target.value))}
@@ -1696,6 +1755,22 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
                     </div>
                   );
                 })}
+
+                {/* Custom psychomotor skills */}
+                {(db.reportCardLayout?.customPsychomotorSkills || []).map((skill) => (
+                  <div key={skill} className="flex justify-between items-center bg-amber-50/50 p-2 rounded border border-amber-100">
+                    <span className="font-semibold text-amber-800 text-[11px]">{skill}</span>
+                    <select
+                      value={(activePsychomotor as PsychomotorSkills).customSkills?.[skill] ?? 4}
+                      onChange={(e) => handleCustomPsychomotorChange(skill, parseInt(e.target.value))}
+                      className="bg-white border border-amber-300 px-1.5 py-0.5 rounded font-black text-amber-700"
+                    >
+                      {[5, 4, 3, 2, 1].map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
               </div>
 
               {/* Comments fields */}

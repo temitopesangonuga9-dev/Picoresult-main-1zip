@@ -5,7 +5,7 @@ import { compressImage, getScoreComponents, calculateCurrentTermTotal } from "..
 import ReportCard from "./ReportCard";
 import Broadsheet from "./Broadsheet";
 import * as XLSX from "xlsx";
-import { ShieldCheck, ClipboardList, FileText, Table, Plus, Users, BookOpen, GraduationCap, School, Check, UserPlus, Trash, Bookmark, Eye, ShieldAlert, Settings, Upload, Printer, LayoutGrid, Paintbrush, Layers, Download, FileSpreadsheet, EyeOff, Edit, Trash2 } from "lucide-react";
+import { ShieldCheck, ClipboardList, FileText, Table, Plus, Users, BookOpen, GraduationCap, School, Check, UserPlus, Trash, Bookmark, Eye, ShieldAlert, Settings, Upload, Printer, LayoutGrid, Paintbrush, Layers, Download, FileSpreadsheet, EyeOff, Edit, Trash2, Calendar } from "lucide-react";
 
 interface AdminPortalProps {
   db: Database;
@@ -143,6 +143,15 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
   const [layoutUseWatermark, setLayoutUseWatermark] = useState(db.reportCardLayout?.useWatermark !== false);
   const [layoutWatermarkText, setLayoutWatermarkText] = useState(db.reportCardLayout?.watermarkText || "APPROVED");
 
+  const [layoutNextTermLabel, setLayoutNextTermLabel] = useState(db.reportCardLayout?.nextTermLabel || "Next term begins");
+  const [layoutTermEndedLabel, setLayoutTermEndedLabel] = useState(db.reportCardLayout?.termEndedLabel || "Term ended");
+  const [layoutAffectiveTraitLabels, setLayoutAffectiveTraitLabels] = useState<Record<string, string>>(db.reportCardLayout?.affectiveTraitLabels || {});
+  const [layoutPsychomotorSkillLabels, setLayoutPsychomotorSkillLabels] = useState<Record<string, string>>(db.reportCardLayout?.psychomotorSkillLabels || {});
+  const [layoutCustomAffectiveTraits, setLayoutCustomAffectiveTraits] = useState<string[]>(db.reportCardLayout?.customAffectiveTraits || []);
+  const [layoutCustomPsychomotorSkills, setLayoutCustomPsychomotorSkills] = useState<string[]>(db.reportCardLayout?.customPsychomotorSkills || []);
+  const [newCustomAffectiveTrait, setNewCustomAffectiveTrait] = useState("");
+  const [newCustomPsychomotorSkill, setNewCustomPsychomotorSkill] = useState("");
+
   const [designerSuccess, setDesignerSuccess] = useState("");
 
   const handleSaveLayout = () => {
@@ -188,6 +197,13 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
         reportTitleBarLabel: layoutReportTitleBarLabel,
         classTeacherReportLabel: layoutClassTeacherReportLabel,
         principalReportLabel: layoutPrincipalReportLabel,
+
+        nextTermLabel: layoutNextTermLabel,
+        termEndedLabel: layoutTermEndedLabel,
+        affectiveTraitLabels: layoutAffectiveTraitLabels,
+        psychomotorSkillLabels: layoutPsychomotorSkillLabels,
+        customAffectiveTraits: layoutCustomAffectiveTraits,
+        customPsychomotorSkills: layoutCustomPsychomotorSkills,
 
         themePrimaryColor: layoutThemePrimaryColor,
         layoutDensity,
@@ -2704,6 +2720,159 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                   </div>
                 </div>
 
+                {/* 5. Date Field Label Overrides */}
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-1">
+                    <Calendar size={14} className="text-emerald-650" />
+                    Date Field Labels
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <label className="block text-[8px] font-extrabold text-slate-500 uppercase mb-1">Next Term Label</label>
+                      <input type="text" value={layoutNextTermLabel} onChange={(e) => setLayoutNextTermLabel(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded text-[11px] bg-white font-semibold focus:outline-emerald-655" />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-extrabold text-slate-500 uppercase mb-1">Term Ended Label</label>
+                      <input type="text" value={layoutTermEndedLabel} onChange={(e) => setLayoutTermEndedLabel(e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-300 rounded text-[11px] bg-white font-semibold focus:outline-emerald-655" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6. Affective Trait Label Manager */}
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-1">
+                    <Edit size={14} className="text-emerald-650" />
+                    Affective Trait Labels (rename or add)
+                  </h3>
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {[
+                      { key: "punctuality", def: "Punctuality" },
+                      { key: "mentalAlertness", def: "Mental Alertness" },
+                      { key: "behaviour", def: "Behaviour" },
+                      { key: "reliability", def: "Reliability" },
+                      { key: "attentiveness", def: "Attentiveness" },
+                      { key: "respect", def: "Respect" },
+                      { key: "neatness", def: "Neatness" },
+                      { key: "politeness", def: "Politeness" },
+                      { key: "honesty", def: "Honesty" },
+                      { key: "relationshipWithStaff", def: "Relationship w/ Staff" },
+                      { key: "relationshipWithStudents", def: "Relationship w/ Students" },
+                      { key: "attitudeToSchool", def: "Attitude To School" },
+                      { key: "selfControl", def: "Self Control" },
+                    ].map(({ key, def }) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-400 font-bold w-32 shrink-0">{def}</span>
+                        <input
+                          type="text"
+                          placeholder={def}
+                          value={layoutAffectiveTraitLabels[key] || ""}
+                          onChange={(e) => setLayoutAffectiveTraitLabels({ ...layoutAffectiveTraitLabels, [key]: e.target.value })}
+                          className="flex-1 px-2 py-1 border border-slate-200 rounded text-[10px] bg-white font-semibold focus:outline-emerald-600"
+                        />
+                      </div>
+                    ))}
+                    {/* Custom affective traits */}
+                    {layoutCustomAffectiveTraits.map((trait, idx) => (
+                      <div key={`custom_aff_${idx}`} className="flex items-center gap-2">
+                        <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold w-32 shrink-0 px-1.5 py-0.5 rounded truncate">{trait}</span>
+                        <button
+                          onClick={() => setLayoutCustomAffectiveTraits(layoutCustomAffectiveTraits.filter((_, i) => i !== idx))}
+                          className="text-rose-500 hover:text-rose-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="New trait name (e.g. Leadership)"
+                      value={newCustomAffectiveTrait}
+                      onChange={(e) => setNewCustomAffectiveTrait(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 border border-slate-300 rounded text-[11px] bg-white font-semibold focus:outline-emerald-600"
+                    />
+                    <button
+                      onClick={() => {
+                        const t = newCustomAffectiveTrait.trim();
+                        if (!t) return;
+                        if (layoutCustomAffectiveTraits.includes(t)) return;
+                        setLayoutCustomAffectiveTraits([...layoutCustomAffectiveTraits, t]);
+                        setNewCustomAffectiveTrait("");
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-1 rounded cursor-pointer"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* 7. Psychomotor Skill Label Manager */}
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-1">
+                    <Edit size={14} className="text-amber-600" />
+                    Psychomotor Skill Labels (rename or add)
+                  </h3>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {[
+                      { key: "spiritOfTeamwork", def: "Spirit of Teamwork" },
+                      { key: "initiatives", def: "Initiatives" },
+                      { key: "organizationalAbility", def: "Organizational Ability" },
+                      { key: "handwriting", def: "Handwriting" },
+                      { key: "reading", def: "Reading" },
+                      { key: "verbalFluencyDiction", def: "Verbal Fluency/Diction" },
+                      { key: "musicalSkills", def: "Musical Skills" },
+                      { key: "creativeArts", def: "Creative Arts" },
+                      { key: "physicalEducation", def: "Physical Education" },
+                      { key: "generalReasoning", def: "General Reasoning" },
+                    ].map(({ key, def }) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-400 font-bold w-32 shrink-0">{def}</span>
+                        <input
+                          type="text"
+                          placeholder={def}
+                          value={layoutPsychomotorSkillLabels[key] || ""}
+                          onChange={(e) => setLayoutPsychomotorSkillLabels({ ...layoutPsychomotorSkillLabels, [key]: e.target.value })}
+                          className="flex-1 px-2 py-1 border border-slate-200 rounded text-[10px] bg-white font-semibold focus:outline-emerald-600"
+                        />
+                      </div>
+                    ))}
+                    {/* Custom psychomotor skills */}
+                    {layoutCustomPsychomotorSkills.map((skill, idx) => (
+                      <div key={`custom_psy_${idx}`} className="flex items-center gap-2">
+                        <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-200 font-bold w-32 shrink-0 px-1.5 py-0.5 rounded truncate">{skill}</span>
+                        <button
+                          onClick={() => setLayoutCustomPsychomotorSkills(layoutCustomPsychomotorSkills.filter((_, i) => i !== idx))}
+                          className="text-rose-500 hover:text-rose-700 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="New skill name (e.g. Public Speaking)"
+                      value={newCustomPsychomotorSkill}
+                      onChange={(e) => setNewCustomPsychomotorSkill(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 border border-slate-300 rounded text-[11px] bg-white font-semibold focus:outline-emerald-600"
+                    />
+                    <button
+                      onClick={() => {
+                        const s = newCustomPsychomotorSkill.trim();
+                        if (!s) return;
+                        if (layoutCustomPsychomotorSkills.includes(s)) return;
+                        setLayoutCustomPsychomotorSkills([...layoutCustomPsychomotorSkills, s]);
+                        setNewCustomPsychomotorSkill("");
+                      }}
+                      className="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold px-3 py-1 rounded cursor-pointer"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
                 {/* Submitting state feedback */}
                 {designerSuccess && (
                   <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-250 rounded font-bold uppercase tracking-wider text-[10px]">
@@ -2860,9 +3029,19 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                   <span className="block text-[10px] text-slate-400 font-black uppercase mb-1.5">Registered Sessions</span>
                   <div className="flex flex-wrap gap-1.5">
                     {db.sessions.map((sess) => (
-                      <span key={sess} className="bg-emerald-50 text-emerald-800 border border-emerald-250 px-2.5 py-1 rounded-md text-xs font-bold">
-                        {sess}
-                      </span>
+                      <div key={sess} className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
+                        <span className="text-emerald-800 text-xs font-bold">{sess}</span>
+                        <button
+                          onClick={() => {
+                            if (!window.confirm(`Delete session "${sess}"? This won't delete student scores for this session.`)) return;
+                            onUpdateDb({ ...db, sessions: db.sessions.filter(s => s !== sess) });
+                          }}
+                          className="text-rose-400 hover:text-rose-600 ml-1 cursor-pointer"
+                          title="Delete session"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -2871,9 +3050,19 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                   <span className="block text-[10px] text-slate-400 font-black uppercase mb-1.5">Registered Terms</span>
                   <div className="flex flex-wrap gap-1.5">
                     {db.terms.map((t) => (
-                      <span key={t} className="bg-amber-50 text-amber-850 border border-amber-305 px-2.5 py-1 rounded-md text-xs font-mono font-bold">
-                        {t}
-                      </span>
+                      <div key={t} className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+                        <span className="text-amber-850 text-xs font-mono font-bold">{t}</span>
+                        <button
+                          onClick={() => {
+                            if (!window.confirm(`Delete term "${t}"? This won't delete student scores for this term.`)) return;
+                            onUpdateDb({ ...db, terms: db.terms.filter(tm => tm !== t) });
+                          }}
+                          className="text-rose-400 hover:text-rose-600 ml-1 cursor-pointer"
+                          title="Delete term"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -2978,58 +3167,68 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                     {getScoreComponents(db).map((comp) => {
                       const isDefault = ["test1", "test2", "exam"].includes(comp.id);
                       return (
-                        <div key={comp.id} className="p-4 border rounded-xl bg-white flex items-center justify-between shadow-3xs">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-xs text-slate-800 uppercase">{comp.name}</span>
-                              <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-mono uppercase">
-                                KEY: {comp.id}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-slate-405 font-bold uppercase block mt-0.5">
-                              Core Max Points: {comp.maxMark} Weight Marks
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {/* Edit Button for Marks allocation */}
-                            <input
-                              type="number"
-                              value={comp.maxMark}
-                              onChange={(e) => {
-                                const newMark = parseInt(e.target.value) || 0;
-                                const existing = getScoreComponents(db);
-                                const updated = existing.map((x) => x.id === comp.id ? { ...x, maxMark: newMark } : x);
-                                onUpdateDb({
-                                  ...db,
-                                  scoreComponents: updated
-                                });
-                              }}
-                              className="w-16 text-center text-xs px-2 py-1 border rounded bg-white font-extrabold"
-                              title="Modify maximum mark"
-                            />
-
-                            {!isDefault ? (
-                              <button
-                                onClick={() => {
+                        <div key={comp.id} className="p-4 border rounded-xl bg-white shadow-3xs">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-mono uppercase shrink-0">
+                                  {comp.id}
+                                </span>
+                                {isDefault && (
+                                  <span className="text-[8px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-black uppercase">
+                                    STANDARD
+                                  </span>
+                                )}
+                              </div>
+                              {/* Editable name for ALL components */}
+                              <input
+                                type="text"
+                                value={comp.name}
+                                onChange={(e) => {
                                   const existing = getScoreComponents(db);
-                                  const updated = existing.filter((x) => x.id !== comp.id);
-                                  
-                                  onUpdateDb({
-                                    ...db,
-                                    scoreComponents: updated
-                                  });
+                                  const updated = existing.map((x) => x.id === comp.id ? { ...x, name: e.target.value } : x);
+                                  onUpdateDb({ ...db, scoreComponents: updated });
                                 }}
-                                className="text-rose-600 hover:bg-rose-50 p-1.5 rounded transition cursor-pointer"
-                                title="Remove Assessment Area"
-                              >
-                                <Trash size={14} />
-                              </button>
-                            ) : (
-                              <span className="text-[8px] bg-slate-100 text-slate-400 px-2 py-1 rounded font-black tracking-widest uppercase">
-                                STANDARD
-                              </span>
-                            )}
+                                className="w-full text-xs px-2 py-1 border border-slate-300 rounded bg-white font-extrabold text-slate-800 focus:outline-emerald-600"
+                                placeholder="Assessment label..."
+                                title="Edit assessment name"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex flex-col items-center">
+                                <span className="text-[8px] text-slate-400 font-bold uppercase mb-0.5">Max Mark</span>
+                                <input
+                                  type="number"
+                                  value={comp.maxMark}
+                                  min={1}
+                                  max={100}
+                                  onChange={(e) => {
+                                    const newMark = parseInt(e.target.value) || 0;
+                                    const existing = getScoreComponents(db);
+                                    const updated = existing.map((x) => x.id === comp.id ? { ...x, maxMark: newMark } : x);
+                                    onUpdateDb({ ...db, scoreComponents: updated });
+                                  }}
+                                  className="w-16 text-center text-xs px-2 py-1.5 border rounded bg-white font-extrabold focus:outline-emerald-600"
+                                  title="Modify maximum mark"
+                                />
+                              </div>
+
+                              {!isDefault && (
+                                <button
+                                  onClick={() => {
+                                    if (!window.confirm(`Remove assessment column "${comp.name}"?`)) return;
+                                    const existing = getScoreComponents(db);
+                                    const updated = existing.filter((x) => x.id !== comp.id);
+                                    onUpdateDb({ ...db, scoreComponents: updated });
+                                  }}
+                                  className="text-rose-500 hover:bg-rose-50 p-1.5 rounded transition cursor-pointer"
+                                  title="Remove Assessment Area"
+                                >
+                                  <Trash size={14} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -3134,6 +3333,95 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                 </div>
               </div>
 
+              <div className="border-t border-slate-100 pt-3">
+                <span className="block text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Academic Period</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Session</label>
+                    <select
+                      value={editingStudent.session || ""}
+                      onChange={(e) => setEditingStudent({ ...editingStudent, session: e.target.value })}
+                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-semibold"
+                    >
+                      <option value="">— Select —</option>
+                      {db.sessions.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Term</label>
+                    <select
+                      value={editingStudent.term || ""}
+                      onChange={(e) => setEditingStudent({ ...editingStudent, term: e.target.value })}
+                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-semibold"
+                    >
+                      <option value="">— Select —</option>
+                      {db.terms.map((t) => <option key={t} value={t}>{t === "Term1" ? "1st Term" : t === "Term2" ? "2nd Term" : "3rd Term"} ({t})</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-3">
+                <span className="block text-[9px] font-black text-slate-400 uppercase mb-2 tracking-wider">Attendance & Dates</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Next Term Begins</label>
+                    <input
+                      type="date"
+                      value={editingStudent.nextTermBegins || ""}
+                      onChange={(e) => setEditingStudent({ ...editingStudent, nextTermBegins: e.target.value })}
+                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Term Ended</label>
+                    <input
+                      type="date"
+                      value={editingStudent.termEnded || ""}
+                      onChange={(e) => setEditingStudent({ ...editingStudent, termEnded: e.target.value })}
+                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Days School Opened</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingStudent.daysSchoolOpened ?? 0}
+                      onChange={(e) => {
+                        const opened = Math.max(0, parseInt(e.target.value) || 0);
+                        const absent = Math.max(0, opened - (editingStudent.daysPresent ?? 0));
+                        setEditingStudent({ ...editingStudent, daysSchoolOpened: opened, daysAbsent: absent });
+                      }}
+                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Days Present</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingStudent.daysPresent ?? 0}
+                      onChange={(e) => {
+                        const present = Math.max(0, parseInt(e.target.value) || 0);
+                        const absent = Math.max(0, (editingStudent.daysSchoolOpened ?? 0) - present);
+                        setEditingStudent({ ...editingStudent, daysPresent: present, daysAbsent: absent });
+                      }}
+                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-semibold"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Days Absent (auto-calculated)</label>
+                    <input
+                      type="number"
+                      readOnly
+                      value={editingStudent.daysAbsent ?? 0}
+                      className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 font-semibold text-slate-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Class Teacher's Remark</label>
                 <textarea
@@ -3151,6 +3439,17 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                   onChange={(e) => setEditingStudent({ ...editingStudent, principalReport: e.target.value })}
                   className="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-medium text-slate-800 resize-y"
                   rows={2}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Student Portal Password</label>
+                <input
+                  type="text"
+                  value={editingStudent.password || ""}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, password: e.target.value })}
+                  className="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-emerald-600 bg-white font-mono text-slate-800"
+                  placeholder="Leave blank to keep existing password"
                 />
               </div>
 
