@@ -6,9 +6,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends postgresql-clie
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --loglevel verbose
 
-RUN test -f node_modules/.bin/vite && echo "vite binary OK" || (echo "VITE BINARY MISSING - install failed silently" && ls node_modules/.bin | head -50 && exit 1)
+# Run install, then unconditionally dump the npm debug log and directory
+# listing directly into the build output so we can see exactly what happened
+# without needing to expand any collapsed log lines.
+RUN npm install --loglevel verbose; \
+    echo "---- NPM DEBUG LOG ----"; \
+    cat /root/.npm/_logs/*-debug-0.log 2>/dev/null || echo "no debug log found"; \
+    echo "---- /app CONTENTS ----"; \
+    ls -la /app; \
+    echo "---- node_modules CONTENTS (if any) ----"; \
+    ls -la /app/node_modules 2>/dev/null || echo "NO node_modules DIRECTORY WAS CREATED"
+
+RUN test -f node_modules/.bin/vite && echo "vite binary OK" || (echo "VITE BINARY MISSING" && exit 1)
 
 COPY . .
 
