@@ -5,18 +5,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends postgresql-clie
 
 WORKDIR /app
 
-COPY package*.json ./
-
-# Run install, then unconditionally dump the npm debug log and directory
-# listing directly into the build output so we can see exactly what happened
-# without needing to expand any collapsed log lines.
-RUN npm install --loglevel verbose; \
-    echo "---- NPM DEBUG LOG ----"; \
-    cat /root/.npm/_logs/*-debug-0.log 2>/dev/null || echo "no debug log found"; \
-    echo "---- /app CONTENTS ----"; \
-    ls -la /app; \
-    echo "---- node_modules CONTENTS (if any) ----"; \
-    ls -la /app/node_modules 2>/dev/null || echo "NO node_modules DIRECTORY WAS CREATED"
+# Only copy package.json, NOT package-lock.json. The committed lockfile was
+# generated inside Replit's environment and pins some packages (pg and its
+# dependencies, cors, etc.) to Replit's internal proxy host
+# (package-firewall.replit.local), which is unreachable outside Replit and
+# breaks the install. Installing without the lockfile forces npm to resolve
+# everything fresh against the public registry.
+COPY package.json ./
+RUN npm install
 
 RUN test -f node_modules/.bin/vite && echo "vite binary OK" || (echo "VITE BINARY MISSING" && exit 1)
 
