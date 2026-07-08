@@ -1,8 +1,11 @@
 # Dockerfile for Picoresult (Vite/React frontend + Express/Postgres API)
-FROM node:20-alpine
+# Using node:20-slim (Debian) instead of alpine — avoids musl/glibc native binary
+# mismatches that break esbuild/vite/tailwindcss on Alpine.
+FROM node:20-slim
 
 # psql is needed to apply schema.sql on container start
-RUN apk add --no-cache postgresql-client
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -17,5 +20,5 @@ RUN npm run build
 EXPOSE 3001
 
 # Apply schema (safe to run every deploy — uses IF NOT EXISTS), then start the API
-# which also serves the built frontend (see server/index.ts changes).
-CMD sh -c "psql \$DATABASE_URL -f schema.sql && npx tsx server/index.ts"
+# which also serves the built frontend.
+CMD ["sh", "-c", "psql \"$DATABASE_URL\" -f schema.sql && npx tsx server/index.ts"]
