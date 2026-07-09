@@ -25,7 +25,7 @@ export const generateUsername = (fullName: string): string => {
     .replace(/[^a-z0-9 ]/g, "")
     .trim()
     .replace(/\s+/g, "");
-  return `${clean}@schoolname.edu.ng`.replace("schoolname", "progressintellectual");
+  return `${clean}@schoolname.edu.ng`.replace("schoolname", "favourkiddiescollege");
 };
 
 // Beautiful base64 styled avatar or high quality SVG string for student passport
