@@ -1170,647 +1170,647 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
           {activeTeacherTab === "scores" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
         
-        {/* SPREADSHEET CARD (2 COLS) */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-xs p-5 select-text">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
-            <div>
-              <h2 className="text-md font-bold text-emerald-950">
-                Automated Score Grading Engine
-              </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
-                Current Class: {selectedClass} | Subject: {db.subjects.find(sub => sub.id === selectedSubject)?.name}
-              </p>
-            </div>
-            
-            {/* Input switcher pills */}
-            <div className="flex p-0.5 bg-slate-100 rounded-lg border border-slate-200 shrink-0">
-              <button
-                type="button"
-                onClick={() => setInputMode("manual")}
-                className={`px-3.5 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer ${
-                  inputMode === "manual"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-slate-550 hover:text-slate-800"
-                }`}
-              >
-                Manual Entry
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("excel")}
-                className={`px-3.5 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer flex items-center gap-1 ${
-                  inputMode === "excel"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-slate-550 hover:text-slate-800"
-                }`}
-              >
-                <FileSpreadsheet size={12} />
-                Excel Upload
-              </button>
-            </div>
-          </div>
-
-          {/* Arrange and Sort Student Name Bar */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
-            <div className="flex items-center gap-1.5">
-              <ArrowUpDown size={14} className="text-emerald-700 shrink-0" />
-              <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Arrange Roster Order:</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {[
-                { id: "name_asc", label: "A - Z Alphabetical" },
-                { id: "name_desc", label: "Z - A Alphabetical" },
-                { id: "reg_asc", label: "Reg No. Ascending" },
-                { id: "reg_desc", label: "Reg No. Descending" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setStudentSortOrder(opt.id as any)}
-                  className={`px-2.5 py-1 rounded text-[9px] font-extrabold uppercase transition-all cursor-pointer ${
-                    studentSortOrder === opt.id
-                      ? "bg-emerald-900 text-white shadow-xs"
-                      : "bg-white text-slate-600 border border-slate-250 hover:border-slate-350"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {inputMode === "manual" ? (
-            sortedClassStudents.length === 0 ? (
-              <div className="text-center p-10 bg-slate-50 rounded-lg border border-dashed text-slate-400 font-semibold uppercase text-xs">
-                <AlertTriangle className="mx-auto mb-2 text-amber-500" size={24} />
-                No registered students in Class {selectedClass} yet.
-              </div>
-            ) : (
-              <form onSubmit={handleSaveScoresSheet} className="space-y-4">
-                <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                  <table className="w-full text-center border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-150 text-slate-700 font-extrabold border-b border-slate-200 text-[9px] uppercase">
-                        <th className="p-2.5 text-left w-36">Student Name</th>
-                        {getScoreComponents(db).map((comp) => (
-                          <th key={comp.id} className="p-1 font-bold uppercase whitespace-nowrap">
-                            {comp.name}
-                            <br />
-                            <span className="text-[9px] text-slate-400 font-medium">({comp.maxMark})</span>
-                          </th>
-                        ))}
-                        {selectedTerm !== "Term1" && (
-                          <th className="p-1 font-bold leading-none">1ST TERM<br/><span className="text-[9px] text-slate-450 font-medium">(100)</span></th>
-                        )}
-                        {selectedTerm === "Term3" && (
-                          <th className="p-1 font-bold leading-none">2ND TERM<br/><span className="text-[9px] text-slate-450 font-medium">(100)</span></th>
-                        )}
-                        <th className="p-1 font-extrabold text-emerald-800">TOTAL<br/><span className="text-[9px] text-emerald-800 font-medium">({selectedTerm === 'Term1' ? '100' : selectedTerm === 'Term2' ? '200' : '300'})</span></th>
-                        <th className="p-1">GRADE</th>
-                        <th className="p-2 w-12 text-center">TRAITS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                      {sortedClassStudents.map((stud) => {
-                        const score = localScores[stud.id] || { test1: 0, test2: 0, exam: 0, firstTerm: 0, secondTerm: 0 };
-                        const currentTermSum = calculateCurrentTermTotal(score, getScoreComponents(db));
-                        let overallTotal = currentTermSum;
-                        let termDivisor = 1;
-                        if (selectedTerm === "Term2") {
-                          overallTotal = score.firstTerm + currentTermSum;
-                          termDivisor = 2;
-                        } else if (selectedTerm === "Term3") {
-                          overallTotal = score.firstTerm + (score.secondTerm || 0) + currentTermSum;
-                          termDivisor = 3;
-                        }
-                        const percentage = overallTotal / termDivisor;
-                        const gradeObj = calculateGrade(percentage);
-
-                        return (
-                          <tr
-                            key={stud.id}
-                            className={`hover:bg-slate-50/50 ${
-                              selectedStudentForTraits === stud.id ? "bg-emerald-50/30 border-l-4 border-emerald-500 pl-1" : ""
-                            }`}
-                          >
-                            <td className="p-2 text-left">
-                              <span className="font-extrabold text-slate-800 uppercase block truncate max-w-[150px]">
-                                {stud.fullName}
-                              </span>
-                              <span className="text-[9px] text-slate-400 font-bold">{stud.regNo}</span>
-                            </td>
-                            {getScoreComponents(db).map((comp) => {
-                              const isDefault = ["test1", "test2", "exam"].includes(comp.id);
-                              const value = isDefault ? (score[comp.id as keyof Score] as number || 0) : (score.customScores?.[comp.id] || 0);
-                              return (
-                                <td key={comp.id} className="p-1">
-                                  <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    max={comp.maxMark}
-                                    value={value}
-                                    onChange={(e) => {
-                                      const parsedVal = e.target.value === "" ? 0 : parseFloat(e.target.value);
-                                      if (parsedVal < 0 || parsedVal > comp.maxMark) {
-                                        setErrorFeedback(`Value for ${comp.name} must be between 0 and ${comp.maxMark}`);
-                                        return;
-                                      }
-                                      setErrorFeedback("");
-                                      setLocalScores((prev) => {
-                                        const prevScore = prev[stud.id] || { studentId: stud.id, subjectId: selectedSubject, session: selectedSession, term: selectedTerm, test1: 0, test2: 0, exam: 0, firstTerm: 0, secondTerm: 0 };
-                                        if (isDefault) {
-                                          return {
-                                            ...prev,
-                                            [stud.id]: {
-                                              ...prevScore,
-                                              [comp.id]: parsedVal
-                                            }
-                                          };
-                                        } else {
-                                          const existingCustoms = prevScore.customScores || {};
-                                          return {
-                                            ...prev,
-                                            [stud.id]: {
-                                              ...prevScore,
-                                              customScores: {
-                                                ...existingCustoms,
-                                                [comp.id]: parsedVal
-                                              }
-                                            }
-                                          };
-                                        }
-                                      });
-                                    }}
-                                    className="w-12 text-center px-1 py-1 border border-slate-300 rounded font-bold text-slate-800 focus:outline-emerald-600 mx-auto bg-slate-50/30"
-                                  />
-                                </td>
-                              );
-                            })}
-                            {selectedTerm !== "Term1" && (
-                              <td className="p-1">
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  min="0"
-                                  max="100"
-                                  value={score.firstTerm}
-                                  onChange={(e) => handleScoreChange(stud.id, "firstTerm", e.target.value)}
-                                  className="w-12 text-center px-1 py-1 border border-slate-300 rounded font-bold text-slate-800 focus:outline-emerald-600 mx-auto bg-slate-50/30"
-                                />
-                              </td>
-                            )}
-                            {selectedTerm === "Term3" && (
-                              <td className="p-1">
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  min="0"
-                                  max="100"
-                                  value={score.secondTerm || 0}
-                                  onChange={(e) => handleScoreChange(stud.id, "secondTerm", e.target.value)}
-                                  className="w-12 text-center px-1 py-1 border border-slate-300 rounded font-bold text-slate-800 focus:outline-emerald-600 mx-auto bg-slate-50/30"
-                                />
-                              </td>
-                            )}
-                            <td className="p-1 font-black text-emerald-950 bg-emerald-50/20 text-center">
-                              {overallTotal}
-                            </td>
-                            <td className="p-1 text-center font-black text-rose-700">
-                              {gradeObj.grade}
-                            </td>
-                            <td className="p-1 text-center">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedStudentForTraits(stud.id)}
-                                className={`p-1.5 rounded transition ${
-                                  selectedStudentForTraits === stud.id
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                                }`}
-                                title="Edit Behavioral traits & Comments"
-                              >
-                                <UserCheck size={12} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {saveFeedback && (
-                  <div className="bg-green-50 border border-green-200 rounded p-3 text-xs text-green-800 font-bold flex items-center gap-2">
-                    <Check size={16} />
-                    {saveFeedback}
+              {/* SPREADSHEET CARD (2 COLS) */}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-xs p-5 select-text">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
+                  <div>
+                    <h2 className="text-md font-bold text-emerald-950">
+                      Automated Score Grading Engine
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                      Current Class: {selectedClass} | Subject: {db.subjects.find(sub => sub.id === selectedSubject)?.name}
+                    </p>
                   </div>
-                )}
-
-                {errorFeedback && (
-                  <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700 font-bold flex items-center gap-2">
-                    <AlertCircle size={16} />
-                    {errorFeedback}
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadExcelTemplate}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-4 py-2.5 rounded-lg border border-slate-300 transition-all inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                  >
-                    <Download size={14} className="text-emerald-700" />
-                    Download Class Roster excel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-lg transition-all shadow-sm cursor-pointer text-center"
-                  >
-                    Confirm and Commit Scores
-                  </button>
-                </div>
-              </form>
-            )
-          ) : (
-            <div className="space-y-4 animate-fade-in text-slate-700 text-xs">
-              <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-2">
-                <h3 className="font-extrabold text-emerald-950 flex items-center gap-1.5 uppercase text-xs">
-                  <FileSpreadsheet size={16} className="text-emerald-705 shrink-0" />
-                  Excel Spreadsheet Scoring Instructions
-                </h3>
-                <p className="text-[11px] text-slate-650 leading-normal font-medium">
-                  To avoid record mapping discrepancies, we recommend downloading our pre-structured template containing the students registration numbers of the active sorted roster list.
-                </p>
-                
-                <div className="pt-1 select-none">
-                  <button
-                    type="button"
-                    onClick={handleDownloadExcelTemplate}
-                    className="bg-white hover:bg-slate-50 text-emerald-950 font-extrabold text-[10px] px-3.5 py-2 rounded-lg border border-emerald-250 transition-all inline-flex items-center gap-1.5 uppercase shadow-2xs cursor-pointer"
-                  >
-                    <Download size={13} className="text-emerald-750" />
-                    1st Step: Download Prefilled Template (.xlsx)
-                  </button>
-                </div>
-              </div>
-
-              {/* Upload input zone */}
-              <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-6 text-center transition bg-slate-50/50 cursor-pointer relative">
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={handleExcelUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div className="space-y-2 pointer-events-none">
-                  <FileUp className="mx-auto text-slate-400" size={32} />
-                  <p className="font-black text-slate-700 text-xs uppercase tracking-tight">
-                    Select or Drag &amp; Drop Excel Score Spreadsheet Here
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase leading-none">
-                    Supports .xlsx, .xls, and .csv files
-                  </p>
-                </div>
-              </div>
-
-              {/* Status messages */}
-              {uploadError && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 font-extrabold flex items-center gap-2 text-[11px]">
-                  <AlertCircle size={16} className="shrink-0" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              {uploadSuccess && (
-                <div className="bg-emerald-50 border border-emerald-250 rounded-xl p-3 text-emerald-800 font-extrabold flex items-center gap-2 text-[11px]">
-                  <Check size={16} className="text-emerald-750 shrink-0" />
-                  <span>{uploadSuccess}</span>
-                </div>
-              )}
-
-              {commitFeedback && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-blue-800 font-black flex items-center gap-2 text-[11px] uppercase tracking-wider">
-                  <Check size={16} className="shrink-0" />
-                  <span>{commitFeedback}</span>
-                </div>
-              )}
-
-              {/* Parsed Rows Previewer Table */}
-              {importedRows.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2">
-                    <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider">
-                      Parsed Spreadsheet Rows Preview ({importedRows.length} total)
-                    </span>
+                  
+                  {/* Input switcher pills */}
+                  <div className="flex p-0.5 bg-slate-100 rounded-lg border border-slate-200 shrink-0">
                     <button
                       type="button"
-                      onClick={handleCommitExcelScores}
-                      disabled={importedRows.filter(r => r.isValid).length === 0}
-                      className="bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 text-white font-black text-[10px] px-5 py-2.5 rounded-lg transition-all shadow-sm uppercase tracking-wide cursor-pointer text-center"
+                      onClick={() => setInputMode("manual")}
+                      className={`px-3.5 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer ${
+                        inputMode === "manual"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-550 hover:text-slate-800"
+                      }`}
                     >
-                      Commit Excel Rows to DB
+                      Manual Entry
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("excel")}
+                      className={`px-3.5 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all cursor-pointer flex items-center gap-1 ${
+                        inputMode === "excel"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "text-slate-550 hover:text-slate-800"
+                      }`}
+                    >
+                      <FileSpreadsheet size={12} />
+                      Excel Upload
                     </button>
                   </div>
+                </div>
 
-                  <div className="border border-slate-200 rounded-lg overflow-hidden max-h-[350px] overflow-y-auto">
-                    <table className="w-full text-center border-collapse text-[11px]">
-                      <thead>
-                        <tr className="bg-slate-100 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-[9px]">
-                          <th className="p-2 w-12 text-left">Row</th>
-                          <th className="p-2 text-left">Reg No</th>
-                          <th className="p-2 text-left">Student Name</th>
-                          <th className="p-1 font-bold">Test 1</th>
-                          <th className="p-1 font-bold">Test 2</th>
-                          <th className="p-1 font-bold">Exam</th>
-                          {selectedTerm !== "Term1" && <th className="p-1 font-bold">1st Term</th>}
-                          {selectedTerm === "Term3" && <th className="p-1 font-bold">2nd Term</th>}
-                          <th className="p-2 text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white font-semibold text-slate-700">
-                        {importedRows.map((row, index) => {
-                          return (
-                            <tr key={index} className={`hover:bg-slate-50/50 ${!row.isValid ? "bg-red-50/30" : ""}`}>
-                              <td className="p-2 text-left text-slate-400 font-normal">#{row.rowNum}</td>
-                              <td className="p-2 text-left font-black text-slate-800">{row.regNo}</td>
-                              <td className="p-2 text-left truncate max-w-[120px]" title={row.studentName}>{row.studentName}</td>
-                              <td className="p-1">
-                                <span className={!row.isTest1Valid ? "text-red-650 font-black" : "text-slate-850"}>{row.test1}</span>
-                              </td>
-                              <td className="p-1">
-                                <span className={!row.isTest2Valid ? "text-red-650 font-black" : "text-slate-850"}>{row.test2}</span>
-                              </td>
-                              <td className="p-1">
-                                <span className={!row.isExamValid ? "text-red-650 font-black" : "text-slate-850"}>{row.exam}</span>
-                              </td>
+                {/* Arrange and Sort Student Name Bar */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+                  <div className="flex items-center gap-1.5">
+                    <ArrowUpDown size={14} className="text-emerald-700 shrink-0" />
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Arrange Roster Order:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { id: "name_asc", label: "A - Z Alphabetical" },
+                      { id: "name_desc", label: "Z - A Alphabetical" },
+                      { id: "reg_asc", label: "Reg No. Ascending" },
+                      { id: "reg_desc", label: "Reg No. Descending" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setStudentSortOrder(opt.id as any)}
+                        className={`px-2.5 py-1 rounded text-[9px] font-extrabold uppercase transition-all cursor-pointer ${
+                          studentSortOrder === opt.id
+                            ? "bg-emerald-900 text-white shadow-xs"
+                            : "bg-white text-slate-600 border border-slate-250 hover:border-slate-350"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {inputMode === "manual" ? (
+                  sortedClassStudents.length === 0 ? (
+                    <div className="text-center p-10 bg-slate-50 rounded-lg border border-dashed text-slate-400 font-semibold uppercase text-xs">
+                      <AlertTriangle className="mx-auto mb-2 text-amber-500" size={24} />
+                      No registered students in Class {selectedClass} yet.
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveScoresSheet} className="space-y-4">
+                      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table className="w-full text-center border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-slate-150 text-slate-700 font-extrabold border-b border-slate-200 text-[9px] uppercase">
+                              <th className="p-2.5 text-left w-36">Student Name</th>
+                              {getScoreComponents(db).map((comp) => (
+                                <th key={comp.id} className="p-1 font-bold uppercase whitespace-nowrap">
+                                  {comp.name}
+                                  <br />
+                                  <span className="text-[9px] text-slate-400 font-medium">({comp.maxMark})</span>
+                                </th>
+                              ))}
                               {selectedTerm !== "Term1" && (
-                                <td className="p-1">
-                                  <span className={!row.isFirstTermValid ? "text-red-650 font-black" : "text-slate-850"}>{row.firstTerm}</span>
-                                </td>
+                                <th className="p-1 font-bold leading-none">1ST TERM<br/><span className="text-[9px] text-slate-450 font-medium">(100)</span></th>
                               )}
                               {selectedTerm === "Term3" && (
-                                <td className="p-1">
-                                  <span className={!row.isSecondTermValid ? "text-red-650 font-black" : "text-slate-850"}>{row.secondTerm}</span>
-                                </td>
+                                <th className="p-1 font-bold leading-none">2ND TERM<br/><span className="text-[9px] text-slate-450 font-medium">(100)</span></th>
                               )}
-                              <td className="p-2 text-center select-none">
-                                {row.isValid ? (
-                                  <span className="bg-green-100 text-green-800 text-[8.5px] px-2 py-0.5 rounded-full font-extrabold uppercase">
-                                    Valid Record
-                                  </span>
-                                ) : (
-                                  <span
-                                    className="bg-red-100 text-red-800 text-[8.5px] px-2 py-0.5 rounded-full font-extrabold uppercase cursor-help shrink-0 block"
-                                    title={
-                                      !row.studentId
-                                        ? "Student registration number not found in current Database registry."
-                                        : !row.isCorrectClass
-                                        ? `Student registered under another class registry (not ${selectedClass}).`
-                                        : "Scores out of max boundaries (Test1/2 max 20, Exam max 60, Terms max 100)."
-                                    }
-                                  >
-                                    ⚠ Error Match
-                                  </span>
-                                )}
-                              </td>
+                              <th className="p-1 font-extrabold text-emerald-800">TOTAL<br/><span className="text-[9px] text-emerald-800 font-medium">({selectedTerm === 'Term1' ? '100' : selectedTerm === 'Term2' ? '200' : '300'})</span></th>
+                              <th className="p-1">GRADE</th>
+                              <th className="p-2 w-12 text-center">TRAITS</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                            {sortedClassStudents.map((stud) => {
+                              const score = localScores[stud.id] || { test1: 0, test2: 0, exam: 0, firstTerm: 0, secondTerm: 0 };
+                              const currentTermSum = calculateCurrentTermTotal(score, getScoreComponents(db));
+                              let overallTotal = currentTermSum;
+                              let termDivisor = 1;
+                              if (selectedTerm === "Term2") {
+                                overallTotal = score.firstTerm + currentTermSum;
+                                termDivisor = 2;
+                              } else if (selectedTerm === "Term3") {
+                                overallTotal = score.firstTerm + (score.secondTerm || 0) + currentTermSum;
+                                termDivisor = 3;
+                              }
+                              const percentage = overallTotal / termDivisor;
+                              const gradeObj = calculateGrade(percentage);
+
+                              return (
+                                <tr
+                                  key={stud.id}
+                                  className={`hover:bg-slate-50/50 ${
+                                    selectedStudentForTraits === stud.id ? "bg-emerald-50/30 border-l-4 border-emerald-500 pl-1" : ""
+                                  }`}
+                                >
+                                  <td className="p-2 text-left">
+                                    <span className="font-extrabold text-slate-800 uppercase block truncate max-w-[150px]">
+                                      {stud.fullName}
+                                    </span>
+                                    <span className="text-[9px] text-slate-400 font-bold">{stud.regNo}</span>
+                                  </td>
+                                  {getScoreComponents(db).map((comp) => {
+                                    const isDefault = ["test1", "test2", "exam"].includes(comp.id);
+                                    const value = isDefault ? (score[comp.id as keyof Score] as number || 0) : (score.customScores?.[comp.id] || 0);
+                                    return (
+                                      <td key={comp.id} className="p-1">
+                                        <input
+                                          type="number"
+                                          step="0.5"
+                                          min="0"
+                                          max={comp.maxMark}
+                                          value={value}
+                                          onChange={(e) => {
+                                            const parsedVal = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                                            if (parsedVal < 0 || parsedVal > comp.maxMark) {
+                                              setErrorFeedback(`Value for ${comp.name} must be between 0 and ${comp.maxMark}`);
+                                              return;
+                                            }
+                                            setErrorFeedback("");
+                                            setLocalScores((prev) => {
+                                              const prevScore = prev[stud.id] || { studentId: stud.id, subjectId: selectedSubject, session: selectedSession, term: selectedTerm, test1: 0, test2: 0, exam: 0, firstTerm: 0, secondTerm: 0 };
+                                              if (isDefault) {
+                                                return {
+                                                  ...prev,
+                                                  [stud.id]: {
+                                                    ...prevScore,
+                                                    [comp.id]: parsedVal
+                                                  }
+                                                };
+                                              } else {
+                                                const existingCustoms = prevScore.customScores || {};
+                                                return {
+                                                  ...prev,
+                                                  [stud.id]: {
+                                                    ...prevScore,
+                                                    customScores: {
+                                                      ...existingCustoms,
+                                                      [comp.id]: parsedVal
+                                                    }
+                                                  }
+                                                };
+                                              }
+                                            });
+                                          }}
+                                          className="w-12 text-center px-1 py-1 border border-slate-300 rounded font-bold text-slate-800 focus:outline-emerald-600 mx-auto bg-slate-50/30"
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                  {selectedTerm !== "Term1" && (
+                                    <td className="p-1">
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="100"
+                                        value={score.firstTerm}
+                                        onChange={(e) => handleScoreChange(stud.id, "firstTerm", e.target.value)}
+                                        className="w-12 text-center px-1 py-1 border border-slate-300 rounded font-bold text-slate-800 focus:outline-emerald-600 mx-auto bg-slate-50/30"
+                                      />
+                                    </td>
+                                  )}
+                                  {selectedTerm === "Term3" && (
+                                    <td className="p-1">
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="100"
+                                        value={score.secondTerm || 0}
+                                        onChange={(e) => handleScoreChange(stud.id, "secondTerm", e.target.value)}
+                                        className="w-12 text-center px-1 py-1 border border-slate-300 rounded font-bold text-slate-800 focus:outline-emerald-600 mx-auto bg-slate-50/30"
+                                      />
+                                    </td>
+                                  )}
+                                  <td className="p-1 font-black text-emerald-950 bg-emerald-50/20 text-center">
+                                    {overallTotal}
+                                  </td>
+                                  <td className="p-1 text-center font-black text-rose-700">
+                                    {gradeObj.grade}
+                                  </td>
+                                  <td className="p-1 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedStudentForTraits(stud.id)}
+                                      className={`p-1.5 rounded transition ${
+                                        selectedStudentForTraits === stud.id
+                                          ? "bg-emerald-600 text-white"
+                                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                      }`}
+                                      title="Edit Behavioral traits & Comments"
+                                    >
+                                      <UserCheck size={12} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {saveFeedback && (
+                        <div className="bg-green-50 border border-green-200 rounded p-3 text-xs text-green-800 font-bold flex items-center gap-2">
+                          <Check size={16} />
+                          {saveFeedback}
+                        </div>
+                      )}
+
+                      {errorFeedback && (
+                        <div className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700 font-bold flex items-center gap-2">
+                          <AlertCircle size={16} />
+                          {errorFeedback}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={handleDownloadExcelTemplate}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-4 py-2.5 rounded-lg border border-slate-300 transition-all inline-flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                        >
+                          <Download size={14} className="text-emerald-700" />
+                          Download Class Roster excel
+                        </button>
+                        <button
+                          type="submit"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-lg transition-all shadow-sm cursor-pointer text-center"
+                        >
+                          Confirm and Commit Scores
+                        </button>
+                      </div>
+                    </form>
+                  )
+                ) : (
+                  <div className="space-y-4 animate-fade-in text-slate-700 text-xs">
+                    <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl space-y-2">
+                      <h3 className="font-extrabold text-emerald-950 flex items-center gap-1.5 uppercase text-xs">
+                        <FileSpreadsheet size={16} className="text-emerald-705 shrink-0" />
+                        Excel Spreadsheet Scoring Instructions
+                      </h3>
+                      <p className="text-[11px] text-slate-650 leading-normal font-medium">
+                        To avoid record mapping discrepancies, we recommend downloading our pre-structured template containing the students registration numbers of the active sorted roster list.
+                      </p>
+                      
+                      <div className="pt-1 select-none">
+                        <button
+                          type="button"
+                          onClick={handleDownloadExcelTemplate}
+                          className="bg-white hover:bg-slate-50 text-emerald-950 font-extrabold text-[10px] px-3.5 py-2 rounded-lg border border-emerald-250 transition-all inline-flex items-center gap-1.5 uppercase shadow-2xs cursor-pointer"
+                        >
+                          <Download size={13} className="text-emerald-750" />
+                          1st Step: Download Prefilled Template (.xlsx)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Upload input zone */}
+                    <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-6 text-center transition bg-slate-50/50 cursor-pointer relative">
+                      <input
+                        type="file"
+                        accept=".xlsx, .xls, .csv"
+                        onChange={handleExcelUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="space-y-2 pointer-events-none">
+                        <FileUp className="mx-auto text-slate-400" size={32} />
+                        <p className="font-black text-slate-700 text-xs uppercase tracking-tight">
+                          Select or Drag &amp; Drop Excel Score Spreadsheet Here
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase leading-none">
+                          Supports .xlsx, .xls, and .csv files
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status messages */}
+                    {uploadError && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 font-extrabold flex items-center gap-2 text-[11px]">
+                        <AlertCircle size={16} className="shrink-0" />
+                        <span>{uploadError}</span>
+                      </div>
+                    )}
+
+                    {uploadSuccess && (
+                      <div className="bg-emerald-50 border border-emerald-250 rounded-xl p-3 text-emerald-800 font-extrabold flex items-center gap-2 text-[11px]">
+                        <Check size={16} className="text-emerald-750 shrink-0" />
+                        <span>{uploadSuccess}</span>
+                      </div>
+                    )}
+
+                    {commitFeedback && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-blue-800 font-black flex items-center gap-2 text-[11px] uppercase tracking-wider">
+                        <Check size={16} className="shrink-0" />
+                        <span>{commitFeedback}</span>
+                      </div>
+                    )}
+
+                    {/* Parsed Rows Previewer Table */}
+                    {importedRows.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2">
+                          <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider">
+                            Parsed Spreadsheet Rows Preview ({importedRows.length} total)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleCommitExcelScores}
+                            disabled={importedRows.filter(r => r.isValid).length === 0}
+                            className="bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 text-white font-black text-[10px] px-5 py-2.5 rounded-lg transition-all shadow-sm uppercase tracking-wide cursor-pointer text-center"
+                          >
+                            Commit Excel Rows to DB
+                          </button>
+                        </div>
+
+                        <div className="border border-slate-200 rounded-lg overflow-hidden max-h-[350px] overflow-y-auto">
+                          <table className="w-full text-center border-collapse text-[11px]">
+                            <thead>
+                              <tr className="bg-slate-100 border-b border-slate-200 text-slate-600 font-extrabold uppercase text-[9px]">
+                                <th className="p-2 w-12 text-left">Row</th>
+                                <th className="p-2 text-left">Reg No</th>
+                                <th className="p-2 text-left">Student Name</th>
+                                <th className="p-1 font-bold">Test 1</th>
+                                <th className="p-1 font-bold">Test 2</th>
+                                <th className="p-1 font-bold">Exam</th>
+                                {selectedTerm !== "Term1" && <th className="p-1 font-bold">1st Term</th>}
+                                {selectedTerm === "Term3" && <th className="p-1 font-bold">2nd Term</th>}
+                                <th className="p-2 text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white font-semibold text-slate-700">
+                              {importedRows.map((row, index) => {
+                                return (
+                                  <tr key={index} className={`hover:bg-slate-50/50 ${!row.isValid ? "bg-red-50/30" : ""}`}>
+                                    <td className="p-2 text-left text-slate-400 font-normal">#{row.rowNum}</td>
+                                    <td className="p-2 text-left font-black text-slate-800">{row.regNo}</td>
+                                    <td className="p-2 text-left truncate max-w-[120px]" title={row.studentName}>{row.studentName}</td>
+                                    <td className="p-1">
+                                      <span className={!row.isTest1Valid ? "text-red-650 font-black" : "text-slate-850"}>{row.test1}</span>
+                                    </td>
+                                    <td className="p-1">
+                                      <span className={!row.isTest2Valid ? "text-red-650 font-black" : "text-slate-850"}>{row.test2}</span>
+                                    </td>
+                                    <td className="p-1">
+                                      <span className={!row.isExamValid ? "text-red-650 font-black" : "text-slate-850"}>{row.exam}</span>
+                                    </td>
+                                    {selectedTerm !== "Term1" && (
+                                      <td className="p-1">
+                                        <span className={!row.isFirstTermValid ? "text-red-650 font-black" : "text-slate-850"}>{row.firstTerm}</span>
+                                      </td>
+                                    )}
+                                    {selectedTerm === "Term3" && (
+                                      <td className="p-1">
+                                        <span className={!row.isSecondTermValid ? "text-red-650 font-black" : "text-slate-850"}>{row.secondTerm}</span>
+                                      </td>
+                                    )}
+                                    <td className="p-2 text-center select-none">
+                                      {row.isValid ? (
+                                        <span className="bg-green-100 text-green-800 text-[8.5px] px-2 py-0.5 rounded-full font-extrabold uppercase">
+                                          Valid Record
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className="bg-red-100 text-red-800 text-[8.5px] px-2 py-0.5 rounded-full font-extrabold uppercase cursor-help shrink-0 block"
+                                          title={
+                                            !row.studentId
+                                              ? "Student registration number not found in current Database registry."
+                                              : !row.isCorrectClass
+                                              ? `Student registered under another class registry (not ${selectedClass}).`
+                                              : "Scores out of max boundaries (Test1/2 max 20, Exam max 60, Terms max 100)."
+                                          }
+                                        >
+                                          ⚠ Error Match
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[10px] text-amber-800 leading-tight font-extrabold uppercase">
+                          <strong>* Note:</strong> Only valid rows highlighted as <strong>&quot;Valid Record&quot;</strong> will be imported to current {selectedClass} class registry. Any invalid lines will be excluded to avoid file mapping corruption.
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[10px] text-amber-800 leading-tight font-extrabold uppercase">
-                    <strong>* Note:</strong> Only valid rows highlighted as <strong>&quot;Valid Record&quot;</strong> will be imported to current {selectedClass} class registry. Any invalid lines will be excluded to avoid file mapping corruption.
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* BEHAVIORAL TRAITS & COMMENTS (1 COL) */}
-        <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 shadow-xs p-5">
-          <h2 className="text-sm font-black text-slate-800 border-b border-slate-100 pb-2 mb-4 flex items-center gap-1.5">
-            <Star size={16} className="text-amber-500 fill-amber-500" />
-            BEHAVIORAL TRAITS &amp; COMMENTS
-          </h2>
-
-          <div className="flex gap-3">
-            {/* Student Navigation List */}
-            <div className="w-28 shrink-0 border-r border-slate-100 pr-2">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Students</p>
-              <div className="space-y-0.5 max-h-[560px] overflow-y-auto">
-                {sortedClassStudents.map((stud) => (
-                  <button
-                    key={stud.id}
-                    type="button"
-                    onClick={() => setSelectedStudentForTraits(stud.id)}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer truncate ${
-                      selectedStudentForTraits === stud.id
-                        ? "bg-emerald-600 text-white"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                    title={stud.fullName}
-                  >
-                    {stud.fullName}
-                  </button>
-                ))}
-                {sortedClassStudents.length === 0 && (
-                  <p className="text-[9px] text-slate-400 italic">No students</p>
                 )}
               </div>
-            </div>
 
-            {/* Traits Form */}
-            <div className="flex-1 min-w-0">
-          {!activeStudentObj ? (
-            <p className="text-xs text-slate-400 font-medium italic text-center py-10 uppercase">
-              Select a student to evaluate behavior.
-            </p>
-          ) : (
-            <div className="space-y-4 text-xs select-text">
-              
-              {/* Student Identification header */}
-              <div className="p-3 bg-emerald-50/25 rounded-xl border border-emerald-100">
-                <p className="font-extrabold text-[12px] text-emerald-950 uppercase">{activeStudentObj.fullName}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Reg. No: {activeStudentObj.regNo}</p>
-              </div>
+              {/* BEHAVIORAL TRAITS & COMMENTS (1 COL) */}
+              <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+                <h2 className="text-sm font-black text-slate-800 border-b border-slate-100 pb-2 mb-4 flex items-center gap-1.5">
+                  <Star size={16} className="text-amber-500 fill-amber-500" />
+                  BEHAVIORAL TRAITS &amp; COMMENTS
+                </h2>
 
-              {/* Attendance metrics */}
-              <div className="space-y-2 border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Attendance Metrics</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Opened</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={activeStudentObj.daysSchoolOpened}
-                      onChange={(e) => handleAttendanceChange("daysSchoolOpened", e.target.value)}
-                      className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 bg-slate-50/25"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Present</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={activeStudentObj.daysPresent}
-                      onChange={(e) => handleAttendanceChange("daysPresent", e.target.value)}
-                      className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 text-emerald-800 bg-slate-50/25"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Absent</label>
-                    <div className="w-full text-center py-1 border border-slate-200 rounded font-extrabold text-red-700 bg-red-50/40 select-none">
-                      {activeStudentObj.daysAbsent}
-                    </div>
-                    <p className="text-[8px] text-slate-400 text-center mt-0.5 uppercase">Auto</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Affective Traits Ratings */}
-              <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
-                <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Affective Traits Ratings</h3>
-                
-                {[
-                  { key: "punctuality", def: "Punctuality" },
-                  { key: "mentalAlertness", def: "Mental Alertness" },
-                  { key: "behaviour", def: "Behaviour" },
-                  { key: "reliability", def: "Reliability" },
-                  { key: "attentiveness", def: "Attentiveness" },
-                  { key: "respect", def: "Respect" },
-                  { key: "neatness", def: "Neatness" },
-                  { key: "politeness", def: "Politeness" },
-                  { key: "honesty", def: "Honesty" },
-                  { key: "relationshipWithStaff", def: "Staff Relationship" },
-                  { key: "relationshipWithStudents", def: "Peer Relationship" },
-                  { key: "attitudeToSchool", def: "School Attitude" },
-                  { key: "selfControl", def: "Self Control" },
-                ].map((item) => {
-                  const label = db.reportCardLayout?.affectiveTraitLabels?.[item.key] || item.def;
-                  const val = (activeAffective as any)[item.key] || 4;
-                  return (
-                    <div key={item.key} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
-                      <span className="font-semibold text-slate-700 text-[11px]">{label}</span>
-                      <select
-                        value={val}
-                        onChange={(e) => handleAffectiveChange(item.key, parseInt(e.target.value))}
-                        className="bg-white border border-slate-300 px-1.5 py-0.5 rounded font-black text-emerald-900"
-                      >
-                        {[5, 4, 3, 2, 1].map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                })}
-
-                {/* Custom affective traits */}
-                {(db.reportCardLayout?.customAffectiveTraits || []).map((trait) => (
-                  <div key={trait} className="flex justify-between items-center bg-emerald-50/50 p-2 rounded border border-emerald-100">
-                    <span className="font-semibold text-emerald-800 text-[11px]">{trait}</span>
-                    <select
-                      value={(activeAffective as AffectiveTraits).customTraits?.[trait] ?? 4}
-                      onChange={(e) => handleCustomAffectiveChange(trait, parseInt(e.target.value))}
-                      className="bg-white border border-emerald-300 px-1.5 py-0.5 rounded font-black text-emerald-900"
-                    >
-                      {[5, 4, 3, 2, 1].map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                <div className="flex gap-3">
+                  {/* Student Navigation List */}
+                  <div className="w-28 shrink-0 border-r border-slate-100 pr-2">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Students</p>
+                    <div className="space-y-0.5 max-h-[560px] overflow-y-auto">
+                      {sortedClassStudents.map((stud) => (
+                        <button
+                          key={stud.id}
+                          type="button"
+                          onClick={() => setSelectedStudentForTraits(stud.id)}
+                          className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer truncate ${
+                            selectedStudentForTraits === stud.id
+                              ? "bg-emerald-600 text-white"
+                              : "text-slate-700 hover:bg-slate-100"
+                          }`}
+                          title={stud.fullName}
+                        >
+                          {stud.fullName}
+                        </button>
                       ))}
-                    </select>
-                  </div>
-                ))}
-
-                <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider pt-2">Psychomotor Skills Ratings</h3>
-                {[
-                  { key: "spiritOfTeamwork", def: "Spirit of Teamwork" },
-                  { key: "initiatives", def: "Initiatives" },
-                  { key: "organizationalAbility", def: "Organizational Ability" },
-                  { key: "handwriting", def: "Handwriting" },
-                  { key: "reading", def: "Reading" },
-                  { key: "verbalFluencyDiction", def: "Verbal Fluency Diction" },
-                  { key: "musicalSkills", def: "Musical Skills" },
-                  { key: "creativeArts", def: "Creative Arts" },
-                  { key: "physicalEducation", def: "Physical Education" },
-                  { key: "generalReasoning", def: "General Reasoning" },
-                ].map((item) => {
-                  const label = db.reportCardLayout?.psychomotorSkillLabels?.[item.key] || item.def;
-                  const val = (activePsychomotor as any)[item.key] || 4;
-                  return (
-                    <div key={item.key} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
-                      <span className="font-semibold text-slate-700 text-[11px]">{label}</span>
-                      <select
-                        value={val}
-                        onChange={(e) => handlePsychomotorChange(item.key, parseInt(e.target.value))}
-                        className="bg-white border border-slate-300 px-1.5 py-0.5 rounded font-black text-amber-600"
-                      >
-                        {[5, 4, 3, 2, 1].map((r) => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
+                      {sortedClassStudents.length === 0 && (
+                        <p className="text-[9px] text-slate-400 italic">No students</p>
+                      )}
                     </div>
-                  );
-                })}
-
-                {/* Custom psychomotor skills */}
-                {(db.reportCardLayout?.customPsychomotorSkills || []).map((skill) => (
-                  <div key={skill} className="flex justify-between items-center bg-amber-50/50 p-2 rounded border border-amber-100">
-                    <span className="font-semibold text-amber-800 text-[11px]">{skill}</span>
-                    <select
-                      value={(activePsychomotor as PsychomotorSkills).customSkills?.[skill] ?? 4}
-                      onChange={(e) => handleCustomPsychomotorChange(skill, parseInt(e.target.value))}
-                      className="bg-white border border-amber-300 px-1.5 py-0.5 rounded font-black text-amber-700"
-                    >
-                      {[5, 4, 3, 2, 1].map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
                   </div>
-                ))}
+
+                  {/* Traits Form */}
+                  <div className="flex-1 min-w-0">
+                    {!activeStudentObj ? (
+                      <p className="text-xs text-slate-400 font-medium italic text-center py-10 uppercase">
+                        Select a student to evaluate behavior.
+                      </p>
+                    ) : (
+                      <div className="space-y-4 text-xs select-text">
+                        
+                        {/* Student Identification header */}
+                        <div className="p-3 bg-emerald-50/25 rounded-xl border border-emerald-100">
+                          <p className="font-extrabold text-[12px] text-emerald-950 uppercase">{activeStudentObj.fullName}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Reg. No: {activeStudentObj.regNo}</p>
+                        </div>
+
+                        {/* Attendance metrics */}
+                        <div className="space-y-2 border-b border-slate-100 pb-3">
+                          <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Attendance Metrics</h3>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Opened</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={activeStudentObj.daysSchoolOpened}
+                                onChange={(e) => handleAttendanceChange("daysSchoolOpened", e.target.value)}
+                                className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 bg-slate-50/25"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Present</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={activeStudentObj.daysPresent}
+                                onChange={(e) => handleAttendanceChange("daysPresent", e.target.value)}
+                                className="w-full text-center py-1 border border-slate-300 rounded font-extrabold focus:outline-emerald-600 text-emerald-800 bg-slate-50/25"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-450 uppercase mb-0.5">Days Absent</label>
+                              <div className="w-full text-center py-1 border border-slate-200 rounded font-extrabold text-red-700 bg-red-50/40 select-none">
+                                {activeStudentObj.daysAbsent}
+                              </div>
+                              <p className="text-[8px] text-slate-400 text-center mt-0.5 uppercase">Auto</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Affective Traits Ratings */}
+                        <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+                          <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider">Affective Traits Ratings</h3>
+                          
+                          {[
+                            { key: "punctuality", def: "Punctuality" },
+                            { key: "mentalAlertness", def: "Mental Alertness" },
+                            { key: "behaviour", def: "Behaviour" },
+                            { key: "reliability", def: "Reliability" },
+                            { key: "attentiveness", def: "Attentiveness" },
+                            { key: "respect", def: "Respect" },
+                            { key: "neatness", def: "Neatness" },
+                            { key: "politeness", def: "Politeness" },
+                            { key: "honesty", def: "Honesty" },
+                            { key: "relationshipWithStaff", def: "Staff Relationship" },
+                            { key: "relationshipWithStudents", def: "Peer Relationship" },
+                            { key: "attitudeToSchool", def: "School Attitude" },
+                            { key: "selfControl", def: "Self Control" },
+                          ].map((item) => {
+                            const label = db.reportCardLayout?.affectiveTraitLabels?.[item.key] || item.def;
+                            const val = (activeAffective as any)[item.key] || 4;
+                            return (
+                              <div key={item.key} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                <span className="font-semibold text-slate-700 text-[11px]">{label}</span>
+                                <select
+                                  value={val}
+                                  onChange={(e) => handleAffectiveChange(item.key, parseInt(e.target.value))}
+                                  className="bg-white border border-slate-300 px-1.5 py-0.5 rounded font-black text-emerald-900"
+                                >
+                                  {[5, 4, 3, 2, 1].map((r) => (
+                                    <option key={r} value={r}>{r}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            );
+                          })}
+
+                          {/* Custom affective traits */}
+                          {(db.reportCardLayout?.customAffectiveTraits || []).map((trait) => (
+                            <div key={trait} className="flex justify-between items-center bg-emerald-50/50 p-2 rounded border border-emerald-100">
+                              <span className="font-semibold text-emerald-800 text-[11px]">{trait}</span>
+                              <select
+                                value={(activeAffective as AffectiveTraits).customTraits?.[trait] ?? 4}
+                                onChange={(e) => handleCustomAffectiveChange(trait, parseInt(e.target.value))}
+                                className="bg-white border border-emerald-300 px-1.5 py-0.5 rounded font-black text-emerald-900"
+                              >
+                                {[5, 4, 3, 2, 1].map((r) => (
+                                  <option key={r} value={r}>{r}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+
+                          <h3 className="font-bold text-slate-600 text-[10px] uppercase tracking-wider pt-2">Psychomotor Skills Ratings</h3>
+                          {[
+                            { key: "spiritOfTeamwork", def: "Spirit of Teamwork" },
+                            { key: "initiatives", def: "Initiatives" },
+                            { key: "organizationalAbility", def: "Organizational Ability" },
+                            { key: "handwriting", def: "Handwriting" },
+                            { key: "reading", def: "Reading" },
+                            { key: "verbalFluencyDiction", def: "Verbal Fluency Diction" },
+                            { key: "musicalSkills", def: "Musical Skills" },
+                            { key: "creativeArts", def: "Creative Arts" },
+                            { key: "physicalEducation", def: "Physical Education" },
+                            { key: "generalReasoning", def: "General Reasoning" },
+                          ].map((item) => {
+                            const label = db.reportCardLayout?.psychomotorSkillLabels?.[item.key] || item.def;
+                            const val = (activePsychomotor as any)[item.key] || 4;
+                            return (
+                              <div key={item.key} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                <span className="font-semibold text-slate-700 text-[11px]">{label}</span>
+                                <select
+                                  value={val}
+                                  onChange={(e) => handlePsychomotorChange(item.key, parseInt(e.target.value))}
+                                  className="bg-white border border-slate-300 px-1.5 py-0.5 rounded font-black text-amber-600"
+                                >
+                                  {[5, 4, 3, 2, 1].map((r) => (
+                                    <option key={r} value={r}>{r}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            );
+                          })}
+
+                          {/* Custom psychomotor skills */}
+                          {(db.reportCardLayout?.customPsychomotorSkills || []).map((skill) => (
+                            <div key={skill} className="flex justify-between items-center bg-amber-50/50 p-2 rounded border border-amber-100">
+                              <span className="font-semibold text-amber-800 text-[11px]">{skill}</span>
+                              <select
+                                value={(activePsychomotor as PsychomotorSkills).customSkills?.[skill] ?? 4}
+                                onChange={(e) => handleCustomPsychomotorChange(skill, parseInt(e.target.value))}
+                                className="bg-white border border-amber-300 px-1.5 py-0.5 rounded font-black text-amber-700"
+                              >
+                                {[5, 4, 3, 2, 1].map((r) => (
+                                  <option key={r} value={r}>{r}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Comments fields */}
+                        <div className="space-y-3 pt-2 border-t border-slate-100">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Class Teacher&apos;s Report</label>
+                            <textarea
+                              rows={2}
+                              value={localClassTeacherReport}
+                              onChange={(e) => setLocalClassTeacherReport(e.target.value.toUpperCase())}
+                              onBlur={() => handleCommentChange("classTeacherReport", localClassTeacherReport)}
+                              placeholder="ENTER TEACHER REMARK COMMENTS..."
+                              className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-emerald-600 uppercase font-semibold bg-slate-50/30"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Principal&apos;s Report</label>
+                            <textarea
+                              rows={2}
+                              value={localPrincipalReport}
+                              onChange={(e) => setLocalPrincipalReport(e.target.value.toUpperCase())}
+                              onBlur={() => handleCommentChange("principalReport", localPrincipalReport)}
+                              placeholder="ENTER PRINCIPAL PERFORMANCE COMMENT..."
+                              className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-emerald-600 uppercase font-semibold text-emerald-800 bg-slate-50/30"
+                            />
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-emerald-600 text-center font-bold uppercase italic animate-pulse">
+                          ★ Behavioral changes are saved instantly!
+                        </p>
+
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Comments fields */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Class Teacher&apos;s Report</label>
-                  <textarea
-                    rows={2}
-                    value={localClassTeacherReport}
-                    onChange={(e) => setLocalClassTeacherReport(e.target.value.toUpperCase())}
-                    onBlur={() => handleCommentChange("classTeacherReport", localClassTeacherReport)}
-                    placeholder="ENTER TEACHER REMARK COMMENTS..."
-                    className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-emerald-600 uppercase font-semibold bg-slate-50/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Principal&apos;s Report</label>
-                  <textarea
-                    rows={2}
-                    value={localPrincipalReport}
-                    onChange={(e) => setLocalPrincipalReport(e.target.value.toUpperCase())}
-                    onBlur={() => handleCommentChange("principalReport", localPrincipalReport)}
-                    placeholder="ENTER PRINCIPAL PERFORMANCE COMMENT..."
-                    className="w-full text-xs p-2 border border-slate-300 rounded-lg focus:outline-emerald-600 uppercase font-semibold text-emerald-800 bg-slate-50/30"
-                  />
-                </div>
-              </div>
-
-              <p className="text-[10px] text-emerald-600 text-center font-bold uppercase italic animate-pulse">
-                ★ Behavioral changes are saved instantly!
-              </p>
-
             </div>
-          )}
-            </div>
-          </div>
-        </div>
-
-      </div>
           )}
         </div>
       </div>
