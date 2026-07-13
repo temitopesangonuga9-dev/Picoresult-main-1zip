@@ -978,7 +978,8 @@ export default function ReportCard({ studentId, session, term, db, onBack, hideC
                     <div className="absolute right-2 bottom-1 opacity-70 transform rotate-6 border-2 border-red-500 rounded p-1 flex flex-col items-center justify-center font-extrabold text-red-500 select-none pointer-events-none scale-75">
                       <span className="text-[6px] leading-none">{db.schoolSettings.schoolName.toUpperCase()}</span>
                       <span className="text-[8px] uppercase leading-none my-0.5">APPROVED TERM REPORT</span>
-                    </div>
+                      <span className="text-[6px] font-bold leading-none">SAGAMU, OGUN STATE</span>
+                      </div>
                   )}
                   
                   {/* Handwriting Scribble Signature or Uploaded Signature */}
