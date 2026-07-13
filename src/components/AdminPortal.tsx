@@ -5,7 +5,7 @@ import { compressImage, getScoreComponents, calculateCurrentTermTotal } from "..
 import ReportCard from "./ReportCard";
 import Broadsheet from "./Broadsheet";
 import * as XLSX from "xlsx";
-import { ShieldCheck, ClipboardList, FileText, Table, Plus, Users, BookOpen, GraduationCap, School, Check, UserPlus, Trash, Bookmark, Eye, ShieldAlert, Settings, Upload, Printer, LayoutGrid, Paintbrush, Layers, Download, FileSpreadsheet, EyeOff, Edit, Trash2, Calendar } from "lucide-react";
+import { ShieldCheck, ClipboardList, FileText, Table, Plus, Users, BookOpen, GraduationCap, School, Check, UserPlus, Trash, Bookmark, Eye, ShieldAlert, Settings, Upload, Printer, LayoutGrid, Paintbrush, Layers, Download, FileSpreadsheet, EyeOff, Edit, Trash2, Calendar, ChevronUp, ChevronDown } from "lucide-react";
 
 interface AdminPortalProps {
   db: Database;
@@ -3200,11 +3200,40 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                   </div>
 
                   <div className="space-y-3">
-                    {getScoreComponents(db).map((comp) => {
+                    {(() => {
+                      const compsList = getScoreComponents(db);
+                      const moveComponent = (idx: number, direction: -1 | 1) => {
+                        const target = idx + direction;
+                        if (target < 0 || target >= compsList.length) return;
+                        const reordered = [...compsList];
+                        [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+                        onUpdateDb({ ...db, scoreComponents: reordered });
+                      };
+                      return compsList.map((comp, idx) => {
                       const isDefault = ["test1", "test2", "exam"].includes(comp.id);
                       return (
                         <div key={comp.id} className="p-4 border rounded-xl bg-white shadow-3xs">
                           <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-col items-center gap-0.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => moveComponent(idx, -1)}
+                                disabled={idx === 0}
+                                className="text-slate-400 hover:text-emerald-600 disabled:opacity-20 disabled:cursor-not-allowed p-0.5 cursor-pointer"
+                                title="Move up"
+                              >
+                                <ChevronUp size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveComponent(idx, 1)}
+                                disabled={idx === compsList.length - 1}
+                                className="text-slate-400 hover:text-emerald-600 disabled:opacity-20 disabled:cursor-not-allowed p-0.5 cursor-pointer"
+                                title="Move down"
+                              >
+                                <ChevronDown size={14} />
+                              </button>
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-mono uppercase shrink-0">
@@ -3268,7 +3297,8 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                           </div>
                         </div>
                       );
-                    })}
+                      });
+                    })()}
                   </div>
                 </div>
               </div>
