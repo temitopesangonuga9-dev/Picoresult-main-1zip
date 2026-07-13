@@ -111,7 +111,7 @@ export default function TeacherPortal({ teacherId, db, onUpdateDb, onLogout }: T
       return;
     }
 
-    const username = generateUsername(enrollName);
+    const username = generateUsername(enrollName, db.schoolSettings.schoolName);
 
     // Check pre-existence
     if (db.students.some((s) => s.username === username || s.regNo === enrollReg)) {
