@@ -3206,19 +3206,41 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                     })()}
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm("This will reset the arrangement of all assessment columns back to a clean, consistent order (current visual order, top to bottom). Continue?")) return;
+                      const current = getScoreComponents(db);
+                      const cleaned = current.map((c: any, i) => ({ ...c, order: i }));
+                      onUpdateDb({ ...db, scoreComponents: cleaned });
+                    }}
+                    className="w-full text-[10px] font-bold uppercase text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-dashed border-slate-300 hover:border-emerald-300 rounded-lg py-2 transition cursor-pointer"
+                  >
+                    Fix Column Order (reset to clean sequence)
+                  </button>
+
                   <div className="space-y-3">
                     {(() => {
                       const compsList = getScoreComponents(db);
                       const moveComponent = (idx: number, direction: -1 | 1) => {
                         const target = idx + direction;
                         if (target < 0 || target >= compsList.length) return;
-                        const reordered = [...compsList];
-                        [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
-                        // Assign explicit sequential order values to ALL items so the
-                        // new arrangement survives the next database sync (row order
-                        // within a Postgres collection is not preserved on its own).
-                        const withOrder = reordered.map((c, i) => ({ ...c, order: i }));
-                        onUpdateDb({ ...db, scoreComponents: withOrder });
+                        // Backfill missing order values first, using each item's CURRENT
+                        // position, WITHOUT altering any item that already has one.
+                        const withOrder = compsList.map((c: any, i) =>
+                          typeof c.order === "number" ? c : { ...c, order: i }
+                        );
+                        const itemA = withOrder[idx] as any;
+                        const itemB = withOrder[target] as any;
+                        // Swap ONLY these two items' order values. Every other item's
+                        // order is left completely untouched, so one click can never
+                        // reshuffle the whole list — only the two items being moved.
+                        const updated = withOrder.map((c: any) => {
+                          if (c.id === itemA.id) return { ...c, order: itemB.order };
+                          if (c.id === itemB.id) return { ...c, order: itemA.order };
+                          return c;
+                        });
+                        onUpdateDb({ ...db, scoreComponents: updated });
                       };
                       return compsList.map((comp, idx) => {
                       const isDefault = ["test1", "test2", "exam"].includes(comp.id);
