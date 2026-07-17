@@ -3151,14 +3151,21 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                       }
                       const existingComps = getScoreComponents(db);
                       const customSlug = `custom_${Date.now()}`;
-                      
+
                       const newComp: ScoreComponent = {
                         id: customSlug,
                         name: newColName.trim(),
                         maxMark: newColMaxMark,
-                      };
+                        order: existingComps.length,
+                      } as ScoreComponent;
 
-                      const newCompsList = [...existingComps, newComp];
+                      // Backfill order on any pre-existing items that don't have one yet,
+                      // so the whole list has a stable, explicit order going forward.
+                      const backfilled = existingComps.map((c: any, i) =>
+                        typeof c.order === "number" ? c : { ...c, order: i }
+                      );
+
+                      const newCompsList = [...backfilled, newComp];
                       onUpdateDb({
                         ...db,
                         scoreComponents: newCompsList
@@ -3207,7 +3214,11 @@ export default function AdminPortal({ db, onUpdateDb, onLogout }: AdminPortalPro
                         if (target < 0 || target >= compsList.length) return;
                         const reordered = [...compsList];
                         [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
-                        onUpdateDb({ ...db, scoreComponents: reordered });
+                        // Assign explicit sequential order values to ALL items so the
+                        // new arrangement survives the next database sync (row order
+                        // within a Postgres collection is not preserved on its own).
+                        const withOrder = reordered.map((c, i) => ({ ...c, order: i }));
+                        onUpdateDb({ ...db, scoreComponents: withOrder });
                       };
                       return compsList.map((comp, idx) => {
                       const isDefault = ["test1", "test2", "exam"].includes(comp.id);
